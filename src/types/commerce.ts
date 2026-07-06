@@ -7,8 +7,8 @@ export type Product = {
     price: number;
     inventory: number;
     status: ProductStatus;
-    tag: string[];
-    updateAt: string;
+    tags: string[];
+    updatedAt: string;
 }
 
 export type OrderStatus = 
@@ -25,7 +25,7 @@ export type Order = {
     total: number;
     status: OrderStatus;
     itemCount: number;
-    createAt: string;
+    createdAt: string;
 }
 
 export type DashboardMetrics ={
@@ -37,5 +37,5 @@ export type DashboardMetrics ={
 
 export type RevenuePoint ={
     label: string;
-    value: string;
+    value: number;
 }
