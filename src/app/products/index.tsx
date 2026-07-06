@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,14 +9,14 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { getProducts } from "../../src/api/merchantApi";
-import { Card } from "../../src/components/Card";
-import { EmptyState } from "../../src/components/EmptyState";
-import { StatusPill } from "../../src/components/StatusPill";
-import { colors, spacing } from "../../src/constants/theme";
-import { Product, ProductStatus } from "../../src/types/commerce";
-import { formatCurrency } from "../../src/utils/formatCurrency";
-import { isLowStock } from "../../src/utils/inventory";
+import { getProducts } from "../../api/merchantApi";
+import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
+import { StatusPill } from "../../components/StatusPill";
+import { colors, spacing } from "../../constants/theme";
+import { Product, ProductStatus } from "../../types/commerce";
+import { formatCurrency } from "../../utils/formatCurrency";
+import { isLowStock } from "../../utils/inventory";
 
 type Filter = "all" | ProductStatus | "low-stock";
 
@@ -75,7 +75,12 @@ export default function ProductsScreen() {
             onPress={() => setFilter(item)}
             style={[styles.filter, filter === item && styles.activeFilter]}
           >
-            <Text style={[styles.filterText, filter === item && styles.activeFilterText]}>
+            <Text
+              style={[
+                styles.filterText,
+                filter === item && styles.activeFilterText,
+              ]}
+            >
               {item}
             </Text>
           </Pressable>
@@ -93,7 +98,9 @@ export default function ProductsScreen() {
           />
         }
         renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/products/${item.id}`)}>
+          <Pressable
+            onPress={() => router.push(`/products/${item.id}` as Href)}
+          >
             <Card>
               <View style={styles.row}>
                 <View style={styles.productInfo}>

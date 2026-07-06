@@ -6,13 +6,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { getProducts, getRevenuePoints } from "../src/api/merchantApi";
-import { Card } from "../src/components/Card";
-import { StatusPill } from "../src/components/StatusPill";
-import { colors, spacing } from "../src/constants/theme";
-import { Product, RevenuePoint } from "../src/types/commerce";
-import { formatCurrency } from "../src/utils/formatCurrency";
-import { isLowStock } from "../src/utils/inventory";
+import { getProducts, getRevenuePoints } from "../api/merchantApi";
+import { Card } from "../components/Card";
+import { StatusPill } from "../components/StatusPill";
+import { colors, spacing } from "../constants/theme";
+import { Product, RevenuePoint } from "../types/commerce";
+import { formatCurrency } from "../utils/formatCurrency";
+import { isLowStock } from "../utils/inventory";
 
 export default function InsightsScreen() {
   const [revenue, setRevenue] = useState<RevenuePoint[]>([]);

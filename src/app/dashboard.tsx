@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,14 +8,18 @@ import {
   Text,
   View,
 } from "react-native";
-import { getDashboardMetrics, getOrders, getProducts } from "../src/api/merchantApi";
-import { AppButton } from "../src/components/AppButton";
-import { Card } from "../src/components/Card";
-import { StatusPill } from "../src/components/StatusPill";
-import { colors, spacing } from "../src/constants/theme";
-import { DashboardMetrics, Order, Product } from "../src/types/commerce";
-import { formatCurrency } from "../src/utils/formatCurrency";
-import { isLowStock } from "../src/utils/inventory";
+import {
+  getDashboardMetrics,
+  getOrders,
+  getProducts,
+} from "../api/merchantApi";
+import { AppButton } from "../components/AppButton";
+import { Card } from "../components/Card";
+import { StatusPill } from "../components/StatusPill";
+import { colors, spacing } from "../constants/theme";
+import { DashboardMetrics, Order, Product } from "../types/commerce";
+import { formatCurrency } from "../utils/formatCurrency";
+import { isLowStock } from "../utils/inventory";
 
 export default function DashboardScreen() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -56,12 +60,16 @@ export default function DashboardScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>Good afternoon, Tri</Text>
-      <Text style={styles.subheading}>Here is what is happening in your store.</Text>
+      <Text style={styles.subheading}>
+        Here is what is happening in your store.
+      </Text>
 
       <View style={styles.grid}>
         <Card>
           <Text style={styles.metricLabel}>Revenue Today</Text>
-          <Text style={styles.metric}>{formatCurrency(metrics.revenueToday)}</Text>
+          <Text style={styles.metric}>
+            {formatCurrency(metrics.revenueToday)}
+          </Text>
         </Card>
 
         <Card>
@@ -83,9 +91,20 @@ export default function DashboardScreen() {
       <Card>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actions}>
-          <AppButton title="Products" onPress={() => router.push("/products")} />
-          <AppButton title="Orders" onPress={() => router.push("/orders")} variant="secondary" />
-          <AppButton title="Insights" onPress={() => router.push("/insights")} variant="secondary" />
+          <AppButton
+            title="Products"
+            onPress={() => router.push("/products" as Href)}
+          />
+          <AppButton
+            title="Orders"
+            onPress={() => router.push("/orders" as Href)}
+            variant="secondary"
+          />
+          <AppButton
+            title="Insights"
+            onPress={() => router.push("/insights" as Href)}
+            variant="secondary"
+          />
         </View>
       </Card>
 

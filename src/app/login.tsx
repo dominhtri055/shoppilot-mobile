@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";;
 import { useState } from "react";
 import {
   Alert,
@@ -10,10 +10,10 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { login } from "../src/api/merchantApi";
-import { AppButton } from "../src/components/AppButton";
-import { Card } from "../src/components/Card";
-import { colors, spacing } from "../src/constants/theme";
+import { login } from "../api/merchantApi";
+import { AppButton } from "../components/AppButton";
+import { Card } from "../components/Card";
+import { colors, spacing } from "../constants/theme";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("tri.do@example.com");
@@ -36,7 +36,7 @@ export default function LoginScreen() {
       }
 
       await AsyncStorage.setItem("session", JSON.stringify({ email }));
-      router.replace("/dashboard");
+      router.replace("/dashboard" as Href);
     } catch {
       Alert.alert("Error", "Something went wrong while logging in.");
     } finally {

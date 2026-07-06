@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,13 +8,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { getOrders } from "../../src/api/merchantApi";
-import { Card } from "../../src/components/Card";
-import { EmptyState } from "../../src/components/EmptyState";
-import { StatusPill } from "../../src/components/StatusPill";
-import { colors, spacing } from "../../src/constants/theme";
-import { Order, OrderStatus } from "../../src/types/commerce";
-import { formatCurrency } from "../../src/utils/formatCurrency";
+import { getOrders } from "../../api/merchantApi";
+import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
+import { StatusPill } from "../../components/StatusPill";
+import { colors, spacing } from "../../constants/theme";
+import { Order, OrderStatus } from "../../types/commerce";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 type Filter = "all" | OrderStatus;
 
@@ -49,19 +49,31 @@ export default function OrdersScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.filters}>
-        {(["all", "pending", "paid", "packed", "shipped", "delivered"] as Filter[]).map(
-          (item) => (
-            <Pressable
-              key={item}
-              onPress={() => setFilter(item)}
-              style={[styles.filter, filter === item && styles.activeFilter]}
+        {(
+          [
+            "all",
+            "pending",
+            "paid",
+            "packed",
+            "shipped",
+            "delivered",
+          ] as Filter[]
+        ).map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => setFilter(item)}
+            style={[styles.filter, filter === item && styles.activeFilter]}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                filter === item && styles.activeFilterText,
+              ]}
             >
-              <Text style={[styles.filterText, filter === item && styles.activeFilterText]}>
-                {item}
-              </Text>
-            </Pressable>
-          )
-        )}
+              {item}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       <FlatList
@@ -75,7 +87,7 @@ export default function OrdersScreen() {
           />
         }
         renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/orders/${item.id}`)}>
+          <Pressable onPress={() => router.push(`/orders/${item.id}` as Href)}>
             <Card>
               <View style={styles.row}>
                 <View>

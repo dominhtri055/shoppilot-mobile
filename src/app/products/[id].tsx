@@ -12,13 +12,13 @@ import {
   getProductById,
   updateProductInventory,
   updateProductStatus,
-} from "../../src/api/merchantApi";
-import { AppButton } from "../../src/components/AppButton";
-import { Card } from "../../src/components/Card";
-import { StatusPill } from "../../src/components/StatusPill";
-import { colors, spacing } from "../../src/constants/theme";
-import { Product } from "../../src/types/commerce";
-import { formatCurrency } from "../../src/utils/formatCurrency";
+} from "../../api/merchantApi";
+import { AppButton } from "../../components/AppButton";
+import { Card } from "../../components/Card";
+import { StatusPill } from "../../components/StatusPill";
+import { colors, spacing } from "../../constants/theme";
+import { Product } from "../../types/commerce";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -45,7 +45,7 @@ export default function ProductDetailScreen() {
       setSaving(true);
       const updated = await updateProductInventory(
         product.id,
-        product.inventory + amount
+        product.inventory + amount,
       );
       setProduct({ ...updated });
     } catch {
@@ -125,7 +125,9 @@ export default function ProductDetailScreen() {
           Toggle product visibility between active and draft.
         </Text>
         <AppButton
-          title={product.status === "active" ? "Move to Draft" : "Publish Product"}
+          title={
+            product.status === "active" ? "Move to Draft" : "Publish Product"
+          }
           onPress={handleStatusToggle}
           disabled={saving}
         />
