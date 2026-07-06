@@ -394,5 +394,3 @@ Potential future enhancements:
 ## Author
 
 Tri Do
-
-Software Development student focused on full-stack web development, mobile development, and commerce-focused applications.
