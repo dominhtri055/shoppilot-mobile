@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, type Href } from "expo-router";;
+import { Link, router, type Href } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -8,37 +7,33 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from "react-native";
-import { login } from "../api/merchantApi";
 import { AppButton } from "../components/AppButton";
 import { Card } from "../components/Card";
 import { colors, spacing } from "../constants/theme";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("tri.do@example.com");
-  const [password, setPassword] = useState("demo1234");
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
-    if (!email.trim() || !password.trim()) {
+    if (!email.trim() || !password) {
       Alert.alert("Missing information", "Please enter email and password.");
       return;
     }
 
     try {
       setLoading(true);
-      const success = await login(email, password);
-
-      if (!success) {
-        Alert.alert("Login failed", "Invalid demo credentials.");
-        return;
-      }
-
-      await AsyncStorage.setItem("session", JSON.stringify({ email }));
+      await signIn(email, password);
       router.replace("/dashboard" as Href);
-    } catch {
-      Alert.alert("Error", "Something went wrong while logging in.");
+    } catch (error) {
+      Alert.alert(
+        "Login failed",
+        error instanceof Error ? error.message : "Unable to sign in."
+      );
     } finally {
       setLoading(false);
     }
@@ -52,7 +47,7 @@ export default function LoginScreen() {
       <Card>
         <Text style={styles.title}>ShopPilot Mobile</Text>
         <Text style={styles.subtitle}>
-          Merchant dashboard for products, orders, inventory, and insights.
+          Sign in to manage products, orders, inventory, and store insights.
         </Text>
 
         <Text style={styles.label}>Email</Text>
@@ -60,7 +55,9 @@ export default function LoginScreen() {
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
+          autoComplete="email"
           keyboardType="email-address"
+          placeholder="merchant@example.com"
           style={styles.input}
         />
 
@@ -68,17 +65,26 @@ export default function LoginScreen() {
         <TextInput
           value={password}
           onChangeText={setPassword}
+          autoCapitalize="none"
+          autoComplete="password"
           secureTextEntry
+          placeholder="Enter your password"
           style={styles.input}
+          onSubmitEditing={() => void handleLogin()}
         />
 
         <AppButton
           title={loading ? "Signing in..." : "Sign in"}
-          onPress={handleLogin}
+          onPress={() => void handleLogin()}
           disabled={loading}
         />
 
-        <Text style={styles.demo}>Demo: tri.do@example.com / demo1234</Text>
+        <Text style={styles.footerText}>
+          New merchant?{" "}
+          <Link href={"/register" as Href} style={styles.link}>
+            Create an account
+          </Link>
+        </Text>
       </Card>
     </KeyboardAvoidingView>
   );
@@ -113,10 +119,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.md,
+    color: colors.text,
   },
-  demo: {
+  footerText: {
     color: colors.muted,
     marginTop: spacing.md,
     textAlign: "center",
+  },
+  link: {
+    color: colors.primary,
+    fontWeight: "800",
   },
 });
