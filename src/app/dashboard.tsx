@@ -8,11 +8,8 @@ import {
   Text,
   View,
 } from "react-native";
-import {
-  getDashboardMetrics,
-  getOrders,
-  getProducts,
-} from "../api/merchantApi";
+import { getDashboardMetrics, getOrders } from "../api/merchantApi";
+import { getProducts } from "../api/productApi";
 import { AppButton } from "../components/AppButton";
 import { Card } from "../components/Card";
 import { StatusPill } from "../components/StatusPill";
@@ -23,7 +20,7 @@ import { formatCurrency } from "../utils/formatCurrency";
 import { isLowStock } from "../utils/inventory";
 
 export default function DashboardScreen() {
-  const { user, signOut } = useAuth();
+  const { session, user, signOut } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<Product[]>([]);
@@ -32,16 +29,25 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     async function loadDashboard() {
+      if (!session?.access_token) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const [metricsData, ordersData, productsData] = await Promise.all([
           getDashboardMetrics(),
           getOrders(),
-          getProducts(),
+          getProducts(session.access_token),
         ]);
 
-        setMetrics(metricsData);
+        const lowStockProducts = productsData.filter(isLowStock);
+        setMetrics({
+          ...metricsData,
+          lowStockProducts: lowStockProducts.length,
+        });
         setRecentOrders(ordersData.slice(0, 3));
-        setLowStock(productsData.filter(isLowStock));
+        setLowStock(lowStockProducts);
       } catch {
         Alert.alert("Error", "Could not load dashboard data.");
       } finally {
@@ -50,7 +56,7 @@ export default function DashboardScreen() {
     }
 
     void loadDashboard();
-  }, []);
+  }, [session?.access_token]);
 
   async function handleSignOut() {
     try {
@@ -144,15 +150,19 @@ export default function DashboardScreen() {
 
       <Card>
         <Text style={styles.sectionTitle}>Low Stock Alerts</Text>
-        {lowStock.map((product) => (
-          <View key={product.id} style={styles.row}>
-            <View>
-              <Text style={styles.rowTitle}>{product.title}</Text>
-              <Text style={styles.rowMeta}>{product.inventory} left</Text>
+        {lowStock.length > 0 ? (
+          lowStock.map((product) => (
+            <View key={product.id} style={styles.row}>
+              <View>
+                <Text style={styles.rowTitle}>{product.title}</Text>
+                <Text style={styles.rowMeta}>{product.inventory} left</Text>
+              </View>
+              <StatusPill label="Low stock" tone="warning" />
             </View>
-            <StatusPill label="Low stock" tone="warning" />
-          </View>
-        ))}
+          ))
+        ) : (
+          <Text style={styles.rowMeta}>No low-stock products.</Text>
+        )}
       </Card>
     </ScrollView>
   );
