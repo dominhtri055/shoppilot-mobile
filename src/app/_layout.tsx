@@ -31,8 +31,8 @@ function RootNavigator() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
 
       <Stack.Protected guard={!session}>
-        <Stack.Screen name="login" options={{ title: "Login" }} />
-        <Stack.Screen name="register" options={{ title: "Create Account" }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
       </Stack.Protected>
 
       <Stack.Protected guard={Boolean(session)}>
