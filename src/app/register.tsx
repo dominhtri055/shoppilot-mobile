@@ -82,7 +82,7 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="always"
       >
         <Card>
-          <Text style={styles.title}>Create merchant account</Text>
+          <Text style={styles.title}>Create your account</Text>
           <Text style={styles.subtitle}>
             Use this account to access ShopPilot.
           </Text>
@@ -91,8 +91,8 @@ export default function RegisterScreen() {
           <TextInput
             value={fullName}
             onChangeText={setFullName}
-            autoComplete="name"
-            placeholder="Tri Do"
+            autoComplete="name" 
+            placeholder="Your Name"
             style={styles.input}
           />
 
@@ -103,7 +103,7 @@ export default function RegisterScreen() {
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
-            placeholder="merchant@example.com"
+            placeholder="account@example.com"
             style={styles.input}
           />
 
