@@ -8,6 +8,11 @@ import {
 } from "react";
 import { AppState } from "react-native";
 import {
+  completeSocialSignIn as completeSocialSignInFromUrl,
+  type SocialProvider,
+  signInWithSocialProvider,
+} from "../lib/socialAuth";
+import {
   type AuthSession,
   type AuthUser,
   refreshSession,
@@ -23,6 +28,8 @@ type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithProvider: (provider: SocialProvider) => Promise<boolean>;
+  completeSocialSignIn: (url: string) => Promise<void>;
   signUp: (
     fullName: string,
     email: string,
@@ -79,6 +86,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setSession(nextSession);
   }
 
+  async function signInWithProvider(provider: SocialProvider) {
+    const nextSession = await signInWithSocialProvider(provider);
+
+    if (!nextSession) {
+      return false;
+    }
+
+    setSession(nextSession);
+    return true;
+  }
+
+  async function completeSocialSignIn(url: string) {
+    const nextSession = await completeSocialSignInFromUrl(url);
+    setSession(nextSession);
+  }
+
   async function signUp(
     fullName: string,
     email: string,
@@ -105,6 +128,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user: session?.user ?? null,
       loading,
       signIn,
+      signInWithProvider,
+      completeSocialSignIn,
       signUp,
       signOut,
     }),
