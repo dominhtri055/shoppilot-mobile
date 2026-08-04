@@ -1,6 +1,6 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
-import { Alert, Platform, Pressable, Text } from "react-native";
+import { Alert, Pressable, Text } from "react-native";
 import {
   AuthField,
   AuthLayout,
@@ -11,40 +11,86 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const { signIn, signUp } = useAuth();
+
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  const [fullName, setFullName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerError, setRegisterError] = useState("");
+  const [registerSuccess, setRegisterSuccess] = useState("");
 
   async function handleLogin() {
-    setErrorMessage("");
+    setLoginError("");
 
-    if (!email.trim() || !password) {
-      setErrorMessage("Please enter your email and password.");
+    if (!loginEmail.trim() || !loginPassword) {
+      setLoginError("Please enter your email and password.");
       return;
     }
 
     try {
-      setLoading(true);
-      await signIn(email, password);
+      setLoginLoading(true);
+      await signIn(loginEmail, loginPassword);
       router.replace("/dashboard" as Href);
     } catch (error) {
-      setErrorMessage(
+      setLoginError(
         error instanceof Error ? error.message : "Unable to sign in."
       );
     } finally {
-      setLoading(false);
+      setLoginLoading(false);
     }
   }
 
-  function goToRegister() {
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      window.location.assign("/register");
+  async function handleRegister() {
+    setRegisterError("");
+    setRegisterSuccess("");
+
+    if (
+      !fullName.trim() ||
+      !registerEmail.trim() ||
+      !registerPassword ||
+      !confirmPassword
+    ) {
+      setRegisterError("Please complete every field.");
       return;
     }
 
-    router.push("/register" as Href);
+    if (registerPassword.length < 6) {
+      setRegisterError("Password must contain at least 6 characters.");
+      return;
+    }
+
+    if (registerPassword !== confirmPassword) {
+      setRegisterError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      setRegisterLoading(true);
+      const result = await signUp(fullName, registerEmail, registerPassword);
+
+      if (result.session) {
+        router.replace("/dashboard" as Href);
+        return;
+      }
+
+      setRegisterSuccess(
+        "Account created. Check your email to confirm it, then switch to Sign In."
+      );
+      setLoginEmail(registerEmail.trim());
+    } catch (error) {
+      setRegisterError(
+        error instanceof Error ? error.message : "Unable to create account."
+      );
+    } finally {
+      setRegisterLoading(false);
+    }
   }
 
   function showPasswordResetInfo() {
@@ -54,20 +100,12 @@ export default function LoginScreen() {
     );
   }
 
-  return (
-    <AuthLayout
-      mode="login"
-      title="Sign In"
-      formHint="or use your email and password"
-      panelTitle="Hello, Friend!"
-      panelDescription="Register with your details to start managing products, orders, inventory, and store insights."
-      switchLabel="Sign Up"
-      onSwitch={goToRegister}
-    >
+  const loginForm = (
+    <>
       <AuthField
         label="Email"
-        value={email}
-        onChangeText={setEmail}
+        value={loginEmail}
+        onChangeText={setLoginEmail}
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
@@ -76,8 +114,8 @@ export default function LoginScreen() {
 
       <AuthField
         label="Password"
-        value={password}
-        onChangeText={setPassword}
+        value={loginPassword}
+        onChangeText={setLoginPassword}
         autoCapitalize="none"
         autoComplete="password"
         secureTextEntry
@@ -85,8 +123,8 @@ export default function LoginScreen() {
         onSubmitEditing={() => void handleLogin()}
       />
 
-      {errorMessage ? (
-        <AuthMessage type="error">{errorMessage}</AuthMessage>
+      {loginError ? (
+        <AuthMessage type="error">{loginError}</AuthMessage>
       ) : null}
 
       <Pressable onPress={showPasswordResetInfo} accessibilityRole="button">
@@ -94,10 +132,68 @@ export default function LoginScreen() {
       </Pressable>
 
       <AuthPrimaryButton
-        title={loading ? "Signing in..." : "Sign in"}
+        title={loginLoading ? "Signing in..." : "Sign in"}
         onPress={() => void handleLogin()}
-        disabled={loading}
+        disabled={loginLoading || registerLoading}
       />
-    </AuthLayout>
+    </>
   );
+
+  const registerForm = (
+    <>
+      <AuthField
+        label="Full name"
+        value={fullName}
+        onChangeText={setFullName}
+        autoComplete="name"
+        placeholder="Your name"
+      />
+
+      <AuthField
+        label="Email"
+        value={registerEmail}
+        onChangeText={setRegisterEmail}
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        placeholder="merchant@example.com"
+      />
+
+      <AuthField
+        label="Password"
+        value={registerPassword}
+        onChangeText={setRegisterPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        secureTextEntry
+        placeholder="At least 6 characters"
+      />
+
+      <AuthField
+        label="Confirm password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        secureTextEntry
+        placeholder="Re-enter your password"
+        onSubmitEditing={() => void handleRegister()}
+      />
+
+      {registerError ? (
+        <AuthMessage type="error">{registerError}</AuthMessage>
+      ) : null}
+      {registerSuccess ? (
+        <AuthMessage type="success">{registerSuccess}</AuthMessage>
+      ) : null}
+
+      <AuthPrimaryButton
+        title={registerLoading ? "Creating account..." : "Sign up"}
+        onPress={() => void handleRegister()}
+        disabled={registerLoading || loginLoading}
+      />
+    </>
+  );
+
+  return <AuthLayout loginForm={loginForm} registerForm={registerForm} />;
 }
