@@ -1,7 +1,19 @@
 import { Stack } from "expo-router";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { colors } from "../constants/theme";
+import { AuthProvider, useAuth } from "../contexts/AuthContext";
 
-export default function RootLayout() {
+function RootNavigator() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <Stack
       screenOptions={{
@@ -17,16 +29,43 @@ export default function RootLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ title: "Login" }} />
-      <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
-      <Stack.Screen name="products/index" options={{ title: "Products" }} />
-      <Stack.Screen
-        name="products/[id]"
-        options={{ title: "Product Detail" }}
-      />
-      <Stack.Screen name="orders/index" options={{ title: "Orders" }} />
-      <Stack.Screen name="orders/[id]" options={{ title: "Order Detail" }} />
-      <Stack.Screen name="insights" options={{ title: "Insights" }} />
+
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="login" options={{ title: "Login" }} />
+        <Stack.Screen name="register" options={{ title: "Create Account" }} />
+      </Stack.Protected>
+
+      <Stack.Protected guard={Boolean(session)}>
+        <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
+        <Stack.Screen name="products/index" options={{ title: "Products" }} />
+        <Stack.Screen
+          name="products/[id]"
+          options={{ title: "Product Detail" }}
+        />
+        <Stack.Screen name="orders/index" options={{ title: "Orders" }} />
+        <Stack.Screen
+          name="orders/[id]"
+          options={{ title: "Order Detail" }}
+        />
+        <Stack.Screen name="insights" options={{ title: "Insights" }} />
+      </Stack.Protected>
     </Stack>
   );
 }
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
+});
