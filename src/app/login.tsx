@@ -4,11 +4,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from "react-native";
 import { AppButton } from "../components/AppButton";
 import { Card } from "../components/Card";
@@ -42,6 +40,11 @@ export default function LoginScreen() {
   }
 
   function goToRegister() {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.location.assign("/register");
+      return;
+    }
+
     router.push("/register" as Href);
   }
 
@@ -85,16 +88,12 @@ export default function LoginScreen() {
           disabled={loading}
         />
 
-        <View style={styles.footerRow}>
-          <Text style={styles.footerText}>New merchant?</Text>
-          <Pressable
-            accessibilityRole="link"
-            onPress={goToRegister}
-            hitSlop={8}
-          >
-            <Text style={styles.link}>Create an account</Text>
-          </Pressable>
-        </View>
+        <Text style={styles.footerText}>New merchant?</Text>
+        <AppButton
+          title="Create an account"
+          onPress={goToRegister}
+          variant="secondary"
+        />
       </Card>
     </KeyboardAvoidingView>
   );
@@ -131,18 +130,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     color: colors.text,
   },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: spacing.xs,
-    marginTop: spacing.md,
-  },
   footerText: {
     color: colors.muted,
-  },
-  link: {
-    color: colors.primary,
-    fontWeight: "800",
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    textAlign: "center",
   },
 });
