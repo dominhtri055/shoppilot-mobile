@@ -1,16 +1,12 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
+import { Platform } from "react-native";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-} from "react-native";
-import { AppButton } from "../components/AppButton";
-import { Card } from "../components/Card";
-import { colors, spacing } from "../constants/theme";
+  AuthField,
+  AuthLayout,
+  AuthMessage,
+  AuthPrimaryButton,
+} from "../components/AuthLayout";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function RegisterScreen() {
@@ -73,136 +69,66 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.select({ ios: "padding", android: undefined })}
+    <AuthLayout
+      mode="register"
+      title="Create Account"
+      formHint="or use your email for registration"
+      panelTitle="Welcome Back!"
+      panelDescription="Already have an account? Sign in with your details to continue managing your ShopPilot store."
+      switchLabel="Sign In"
+      onSwitch={goToLogin}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="always"
-      >
-        <Card>
-          <Text style={styles.title}>Create your account</Text>
-          <Text style={styles.subtitle}>
-            Use this account to access ShopPilot.
-          </Text>
+      <AuthField
+        label="Full name"
+        value={fullName}
+        onChangeText={setFullName}
+        autoComplete="name"
+        placeholder="Your name"
+      />
 
-          <Text style={styles.label}>Full name</Text>
-          <TextInput
-            value={fullName}
-            onChangeText={setFullName}
-            autoComplete="name" 
-            placeholder="Your Name"
-            style={styles.input}
-          />
+      <AuthField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        placeholder="merchant@example.com"
+      />
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            placeholder="account@example.com"
-            style={styles.input}
-          />
+      <AuthField
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        secureTextEntry
+        placeholder="At least 6 characters"
+      />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            autoCapitalize="none"
-            autoComplete="new-password"
-            secureTextEntry
-            placeholder="At least 6 characters"
-            style={styles.input}
-          />
+      <AuthField
+        label="Confirm password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        secureTextEntry
+        placeholder="Re-enter your password"
+        onSubmitEditing={() => void handleRegister()}
+      />
 
-          <Text style={styles.label}>Confirm password</Text>
-          <TextInput
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            autoCapitalize="none"
-            autoComplete="new-password"
-            secureTextEntry
-            placeholder="Re-enter your password"
-            style={styles.input}
-            onSubmitEditing={() => void handleRegister()}
-          />
+      {errorMessage ? (
+        <AuthMessage type="error">{errorMessage}</AuthMessage>
+      ) : null}
+      {successMessage ? (
+        <AuthMessage type="success">{successMessage}</AuthMessage>
+      ) : null}
 
-          {errorMessage ? (
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          ) : null}
-          {successMessage ? (
-            <Text style={styles.successText}>{successMessage}</Text>
-          ) : null}
-
-          <AppButton
-            title={loading ? "Creating account..." : "Create account"}
-            onPress={() => void handleRegister()}
-            disabled={loading}
-          />
-
-          <Text style={styles.footerText}>Already registered?</Text>
-          <AppButton
-            title="Sign in"
-            onPress={goToLogin}
-            variant="secondary"
-          />
-        </Card>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <AuthPrimaryButton
+        title={loading ? "Creating account..." : "Sign up"}
+        onPress={() => void handleRegister()}
+        disabled={loading}
+      />
+    </AuthLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: spacing.lg,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    color: colors.muted,
-    marginBottom: spacing.xl,
-  },
-  label: {
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    color: colors.text,
-  },
-  errorText: {
-    color: colors.danger,
-    fontWeight: "700",
-    marginBottom: spacing.md,
-  },
-  successText: {
-    color: colors.success,
-    fontWeight: "700",
-    marginBottom: spacing.md,
-  },
-  footerText: {
-    color: colors.muted,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-    textAlign: "center",
-  },
-});
