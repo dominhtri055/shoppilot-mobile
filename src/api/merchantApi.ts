@@ -17,12 +17,6 @@ function delay(ms = 450): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function login(email: string, password: string): Promise<boolean> {
-  await delay();
-
-  return email.trim().toLowerCase() === "tri.do@example.com" && password === "demo1234";
-}
-
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   await delay();
   return dashboardMetrics;
