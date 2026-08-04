@@ -109,7 +109,7 @@ export default function LoginScreen() {
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
-        placeholder="merchant@example.com"
+        placeholder="account@example.com"
       />
 
       <AuthField
@@ -156,7 +156,7 @@ export default function LoginScreen() {
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
-        placeholder="merchant@example.com"
+        placeholder="account@example.com"
       />
 
       <AuthField
