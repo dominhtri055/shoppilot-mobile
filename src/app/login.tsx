@@ -1,16 +1,13 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
+import { Alert, Platform, Pressable, Text } from "react-native";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-} from "react-native";
-import { AppButton } from "../components/AppButton";
-import { Card } from "../components/Card";
-import { colors, spacing } from "../constants/theme";
+  AuthField,
+  AuthLayout,
+  AuthMessage,
+  AuthPrimaryButton,
+  authStyles,
+} from "../components/AuthLayout";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen() {
@@ -18,10 +15,13 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function handleLogin() {
+    setErrorMessage("");
+
     if (!email.trim() || !password) {
-      Alert.alert("Missing information", "Please enter email and password.");
+      setErrorMessage("Please enter your email and password.");
       return;
     }
 
@@ -30,8 +30,7 @@ export default function LoginScreen() {
       await signIn(email, password);
       router.replace("/dashboard" as Href);
     } catch (error) {
-      Alert.alert(
-        "Login failed",
+      setErrorMessage(
         error instanceof Error ? error.message : "Unable to sign in."
       );
     } finally {
@@ -48,92 +47,57 @@ export default function LoginScreen() {
     router.push("/register" as Href);
   }
 
+  function showPasswordResetInfo() {
+    Alert.alert(
+      "Password reset",
+      "Password reset will be added in the next authentication update."
+    );
+  }
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.select({ ios: "padding", android: undefined })}
+    <AuthLayout
+      mode="login"
+      title="Sign In"
+      formHint="or use your email and password"
+      panelTitle="Hello, Friend!"
+      panelDescription="Register with your details to start managing products, orders, inventory, and store insights."
+      switchLabel="Sign Up"
+      onSwitch={goToRegister}
     >
-      <Card>
-        <Text style={styles.title}>ShopPilot Mobile</Text>
-        <Text style={styles.subtitle}>
-          Sign in to manage products, orders, inventory, and store insights.
-        </Text>
+      <AuthField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        autoComplete="email"
+        keyboardType="email-address"
+        placeholder="merchant@example.com"
+      />
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          placeholder="merchant@example.com"
-          style={styles.input}
-        />
+      <AuthField
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        autoCapitalize="none"
+        autoComplete="password"
+        secureTextEntry
+        placeholder="Enter your password"
+        onSubmitEditing={() => void handleLogin()}
+      />
 
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          autoCapitalize="none"
-          autoComplete="password"
-          secureTextEntry
-          placeholder="Enter your password"
-          style={styles.input}
-          onSubmitEditing={() => void handleLogin()}
-        />
+      {errorMessage ? (
+        <AuthMessage type="error">{errorMessage}</AuthMessage>
+      ) : null}
 
-        <AppButton
-          title={loading ? "Signing in..." : "Sign in"}
-          onPress={() => void handleLogin()}
-          disabled={loading}
-        />
+      <Pressable onPress={showPasswordResetInfo} accessibilityRole="button">
+        <Text style={authStyles.textLink}>Forgot your password?</Text>
+      </Pressable>
 
-        <Text style={styles.footerText}>New merchant?</Text>
-        <AppButton
-          title="Create an account"
-          onPress={goToRegister}
-          variant="secondary"
-        />
-      </Card>
-    </KeyboardAvoidingView>
+      <AuthPrimaryButton
+        title={loading ? "Signing in..." : "Sign in"}
+        onPress={() => void handleLogin()}
+        disabled={loading}
+      />
+    </AuthLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: spacing.lg,
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    color: colors.muted,
-    marginBottom: spacing.xl,
-  },
-  label: {
-    fontWeight: "700",
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    color: colors.text,
-  },
-  footerText: {
-    color: colors.muted,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-    textAlign: "center",
-  },
-});
