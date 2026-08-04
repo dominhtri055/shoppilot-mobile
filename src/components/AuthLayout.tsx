@@ -1,5 +1,12 @@
-import type { PropsWithChildren, ReactNode } from "react";
 import {
+  useRef,
+  useState,
+  type PropsWithChildren,
+  type ReactNode,
+} from "react";
+import {
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -28,6 +35,8 @@ const authColors = {
   success: "#166534",
   successBackground: "#DCFCE7",
 };
+
+const AUTH_SWITCH_DURATION = 620;
 
 type AuthLayoutProps = PropsWithChildren<{
   mode: "login" | "register";
@@ -66,12 +75,102 @@ export function AuthLayout({
 }: AuthLayoutProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 820;
+  const transition = useRef(new Animated.Value(0)).current;
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  const cardWidth = Math.min(Math.max(width - 40, 0), 900);
+  const panelDistance = cardWidth / 2;
+  const formDirection = mode === "login" ? 1 : -1;
+
+  const formAnimatedStyle = isDesktop
+    ? {
+        opacity: transition.interpolate({
+          inputRange: [0, 0.42, 0.62, 1],
+          outputRange: [1, 0.55, 0, 0],
+        }),
+        transform: [
+          {
+            translateX: transition.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, formDirection * panelDistance],
+            }),
+          },
+        ],
+      }
+    : undefined;
+
+  const toggleAnimatedStyle = isDesktop
+    ? {
+        transform: [
+          {
+            translateX: transition.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, -formDirection * panelDistance],
+            }),
+          },
+          {
+            scale: transition.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [1, 1.025, 1],
+            }),
+          },
+        ],
+      }
+    : undefined;
+
+  const mobileCardAnimatedStyle = !isDesktop
+    ? {
+        opacity: transition.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 0],
+        }),
+        transform: [
+          {
+            translateX: transition.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, formDirection * 34],
+            }),
+          },
+          {
+            scale: transition.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 0.985],
+            }),
+          },
+        ],
+      }
+    : undefined;
+
+  function handleSwitch() {
+    if (isSwitching) {
+      return;
+    }
+
+    setIsSwitching(true);
+
+    Animated.timing(transition, {
+      toValue: 1,
+      duration: AUTH_SWITCH_DURATION,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished) {
+        onSwitch();
+        return;
+      }
+
+      transition.setValue(0);
+      setIsSwitching(false);
+    });
+  }
 
   const formPanel = (
-    <View
+    <Animated.View
+      pointerEvents={isSwitching ? "none" : "auto"}
       style={[
         styles.formPanel,
         isDesktop ? styles.desktopPanel : styles.mobileFormPanel,
+        formAnimatedStyle,
       ]}
     >
       <View style={styles.formContent}>
@@ -95,11 +194,11 @@ export function AuthLayout({
         <Text style={styles.formHint}>{formHint}</Text>
         {children}
       </View>
-    </View>
+    </Animated.View>
   );
 
   const togglePanel = (
-    <View
+    <Animated.View
       style={[
         styles.togglePanel,
         isDesktop ? styles.desktopPanel : styles.mobileTogglePanel,
@@ -107,6 +206,7 @@ export function AuthLayout({
           (mode === "login"
             ? styles.togglePanelRight
             : styles.togglePanelLeft),
+        toggleAnimatedStyle,
       ]}
     >
       <View style={styles.toggleGlowTop} />
@@ -116,15 +216,19 @@ export function AuthLayout({
       <Text style={styles.panelDescription}>{panelDescription}</Text>
       <Pressable
         accessibilityRole="button"
-        onPress={onSwitch}
+        disabled={isSwitching}
+        onPress={handleSwitch}
         style={({ pressed }) => [
           styles.switchButton,
-          pressed && styles.switchButtonPressed,
+          pressed && !isSwitching && styles.switchButtonPressed,
+          isSwitching && styles.switchButtonDisabled,
         ]}
       >
-        <Text style={styles.switchButtonText}>{switchLabel}</Text>
+        <Text style={styles.switchButtonText}>
+          {isSwitching ? "Switching..." : switchLabel}
+        </Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 
   return (
@@ -139,10 +243,11 @@ export function AuthLayout({
         <View style={styles.page}>
           <View style={styles.pageGlowLeft} />
           <View style={styles.pageGlowRight} />
-          <View
+          <Animated.View
             style={[
               styles.card,
               isDesktop ? styles.desktopCard : styles.mobileCard,
+              mobileCardAnimatedStyle,
             ]}
           >
             {isDesktop ? (
@@ -163,7 +268,7 @@ export function AuthLayout({
                 {formPanel}
               </>
             )}
-          </View>
+          </Animated.View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -297,6 +402,7 @@ const styles = StyleSheet.create({
     minHeight: 560,
   },
   formPanel: {
+    zIndex: 1,
     backgroundColor: authColors.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -390,6 +496,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   togglePanel: {
+    zIndex: 2,
     position: "relative",
     overflow: "hidden",
     alignItems: "center",
@@ -467,6 +574,9 @@ const styles = StyleSheet.create({
   switchButtonPressed: {
     backgroundColor: "rgba(255,255,255,0.16)",
     transform: [{ scale: 0.98 }],
+  },
+  switchButtonDisabled: {
+    opacity: 0.7,
   },
   switchButtonText: {
     color: authColors.white,
