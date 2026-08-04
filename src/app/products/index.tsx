@@ -1,5 +1,5 @@
-import { router, type Href } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { router, type Href, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,11 +9,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { getProducts } from "../../api/merchantApi";
+import { getProducts } from "../../api/productApi";
+import { AppButton } from "../../components/AppButton";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusPill } from "../../components/StatusPill";
 import { colors, spacing } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
 import { Product, ProductStatus } from "../../types/commerce";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { isLowStock } from "../../utils/inventory";
@@ -21,26 +23,57 @@ import { isLowStock } from "../../utils/inventory";
 type Filter = "all" | ProductStatus | "low-stock";
 
 export default function ProductsScreen() {
+  const { session } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadProducts() {
-      const data = await getProducts();
-      setProducts(data);
-      setLoading(false);
-    }
+  const loadProducts = useCallback(
+    async (isRefresh = false) => {
+      if (!session?.access_token) {
+        setErrorMessage("Your session has expired. Please sign in again.");
+        setLoading(false);
+        return;
+      }
 
-    loadProducts();
-  }, []);
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        setErrorMessage(null);
+        const data = await getProducts(session.access_token);
+        setProducts(data);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Products could not be loaded."
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [session?.access_token]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProducts();
+    }, [loadProducts])
+  );
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      const normalizedQuery = query.trim().toLowerCase();
       const matchesQuery =
-        product.title.toLowerCase().includes(query.toLowerCase()) ||
-        product.vendor.toLowerCase().includes(query.toLowerCase());
+        !normalizedQuery ||
+        product.title.toLowerCase().includes(normalizedQuery) ||
+        product.vendor.toLowerCase().includes(normalizedQuery);
 
       const matchesFilter =
         filter === "all" ||
@@ -59,8 +92,22 @@ export default function ProductsScreen() {
     );
   }
 
+  if (errorMessage && products.length === 0) {
+    return (
+      <View style={styles.errorContainer}>
+        <EmptyState title="Products unavailable" message={errorMessage} />
+        <AppButton title="Try again" onPress={() => void loadProducts()} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
+      <AppButton
+        title="Add product"
+        onPress={() => router.push("/products/new" as Href)}
+      />
+
       <TextInput
         value={query}
         onChangeText={setQuery}
@@ -69,7 +116,9 @@ export default function ProductsScreen() {
       />
 
       <View style={styles.filters}>
-        {(["all", "active", "draft", "low-stock"] as Filter[]).map((item) => (
+        {(
+          ["all", "active", "draft", "archived", "low-stock"] as Filter[]
+        ).map((item) => (
           <Pressable
             key={item}
             onPress={() => setFilter(item)}
@@ -87,14 +136,22 @@ export default function ProductsScreen() {
         ))}
       </View>
 
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+
       <FlatList
         data={filteredProducts}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        refreshing={refreshing}
+        onRefresh={() => void loadProducts(true)}
         ListEmptyComponent={
           <EmptyState
             title="No products found"
-            message="Try changing your search or filter."
+            message={
+              products.length === 0
+                ? "Add your first product to start managing inventory."
+                : "Try changing your search or filter."
+            }
           />
         }
         renderItem={({ item }) => (
@@ -129,11 +186,18 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     backgroundColor: colors.background,
+    gap: spacing.md,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: colors.background,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.lg,
     backgroundColor: colors.background,
   },
   input: {
@@ -142,13 +206,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     padding: spacing.md,
-    marginBottom: spacing.md,
   },
   filters: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
-    marginBottom: spacing.md,
   },
   filter: {
     backgroundColor: colors.surface,
@@ -169,6 +231,10 @@ const styles = StyleSheet.create({
   },
   activeFilterText: {
     color: "#FFFFFF",
+  },
+  error: {
+    color: colors.danger,
+    fontWeight: "700",
   },
   list: {
     paddingBottom: spacing.xl,
