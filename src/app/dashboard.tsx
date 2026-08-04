@@ -17,15 +17,18 @@ import { AppButton } from "../components/AppButton";
 import { Card } from "../components/Card";
 import { StatusPill } from "../components/StatusPill";
 import { colors, spacing } from "../constants/theme";
+import { useAuth } from "../contexts/AuthContext";
 import { DashboardMetrics, Order, Product } from "../types/commerce";
 import { formatCurrency } from "../utils/formatCurrency";
 import { isLowStock } from "../utils/inventory";
 
 export default function DashboardScreen() {
+  const { user, signOut } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -46,8 +49,20 @@ export default function DashboardScreen() {
       }
     }
 
-    loadDashboard();
+    void loadDashboard();
   }, []);
+
+  async function handleSignOut() {
+    try {
+      setSigningOut(true);
+      await signOut();
+      router.replace("/login" as Href);
+    } catch {
+      Alert.alert("Sign out failed", "Please try again.");
+    } finally {
+      setSigningOut(false);
+    }
+  }
 
   if (loading || !metrics) {
     return (
@@ -59,9 +74,9 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Good afternoon, Tri</Text>
+      <Text style={styles.heading}>Merchant dashboard</Text>
       <Text style={styles.subheading}>
-        Here is what is happening in your store.
+        Signed in as {user?.email ?? "merchant"}
       </Text>
 
       <View style={styles.grid}>
@@ -105,6 +120,12 @@ export default function DashboardScreen() {
             onPress={() => router.push("/insights" as Href)}
             variant="secondary"
           />
+          <AppButton
+            title={signingOut ? "Signing out..." : "Sign out"}
+            onPress={() => void handleSignOut()}
+            variant="danger"
+            disabled={signingOut}
+          />
         </View>
       </Card>
 
@@ -138,48 +159,26 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-  },
+  container: { backgroundColor: colors.background },
+  content: { padding: spacing.lg },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: colors.background,
   },
-  heading: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: colors.text,
-  },
-  subheading: {
-    color: colors.muted,
-    marginBottom: spacing.lg,
-  },
-  grid: {
-    gap: spacing.sm,
-  },
-  metricLabel: {
-    color: colors.muted,
-    marginBottom: spacing.sm,
-  },
-  metric: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: colors.text,
-  },
+  heading: { fontSize: 28, fontWeight: "900", color: colors.text },
+  subheading: { color: colors.muted, marginBottom: spacing.lg },
+  grid: { gap: spacing.sm },
+  metricLabel: { color: colors.muted, marginBottom: spacing.sm },
+  metric: { fontSize: 24, fontWeight: "900", color: colors.text },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "900",
     marginBottom: spacing.md,
     color: colors.text,
   },
-  actions: {
-    gap: spacing.sm,
-  },
+  actions: { gap: spacing.sm },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -188,11 +187,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  rowTitle: {
-    fontWeight: "800",
-    color: colors.text,
-  },
-  rowMeta: {
-    color: colors.muted,
-  },
+  rowTitle: { fontWeight: "800", color: colors.text },
+  rowMeta: { color: colors.muted },
 });
