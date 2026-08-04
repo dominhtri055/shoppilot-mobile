@@ -1,7 +1,6 @@
 import {
   useRef,
   useState,
-  type PropsWithChildren,
   type ReactNode,
 } from "react";
 import {
@@ -38,15 +37,13 @@ const authColors = {
 
 const AUTH_SWITCH_DURATION = 620;
 
-type AuthLayoutProps = PropsWithChildren<{
-  mode: "login" | "register";
-  title: string;
-  formHint: string;
-  panelTitle: string;
-  panelDescription: string;
-  switchLabel: string;
-  onSwitch: () => void;
-}>;
+type AuthMode = "login" | "register";
+
+type AuthLayoutProps = {
+  loginForm: ReactNode;
+  registerForm: ReactNode;
+  initialMode?: AuthMode;
+};
 
 type AuthFieldProps = TextInputProps & {
   label: string;
@@ -64,171 +61,155 @@ type AuthMessageProps = {
 };
 
 export function AuthLayout({
-  mode,
-  title,
-  formHint,
-  panelTitle,
-  panelDescription,
-  switchLabel,
-  onSwitch,
-  children,
+  loginForm,
+  registerForm,
+  initialMode = "login",
 }: AuthLayoutProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 820;
-  const transition = useRef(new Animated.Value(0)).current;
+  const initialProgress = initialMode === "login" ? 0 : 1;
+  const progress = useRef(new Animated.Value(initialProgress)).current;
+  const mobileOpacity = useRef(new Animated.Value(1)).current;
+  const [activeMode, setActiveMode] = useState<AuthMode>(initialMode);
   const [isSwitching, setIsSwitching] = useState(false);
 
   const cardWidth = Math.min(Math.max(width - 40, 0), 900);
   const panelDistance = cardWidth / 2;
-  const formDirection = mode === "login" ? 1 : -1;
 
-  const formAnimatedStyle = isDesktop
-    ? {
-        opacity: transition.interpolate({
-          inputRange: [0, 0.42, 0.62, 1],
-          outputRange: [1, 0.55, 0, 0],
-        }),
-        transform: [
-          {
-            translateX: transition.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, formDirection * panelDistance],
-            }),
-          },
-        ],
-      }
-    : undefined;
-
-  const toggleAnimatedStyle = isDesktop
-    ? {
-        transform: [
-          {
-            translateX: transition.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, -formDirection * panelDistance],
-            }),
-          },
-          {
-            scale: transition.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [1, 1.025, 1],
-            }),
-          },
-        ],
-      }
-    : undefined;
-
-  const mobileCardAnimatedStyle = !isDesktop
-    ? {
-        opacity: transition.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 0],
-        }),
-        transform: [
-          {
-            translateX: transition.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, formDirection * 34],
-            }),
-          },
-          {
-            scale: transition.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 0.985],
-            }),
-          },
-        ],
-      }
-    : undefined;
-
-  function handleSwitch() {
-    if (isSwitching) {
+  function switchMode(targetMode: AuthMode) {
+    if (isSwitching || targetMode === activeMode) {
       return;
     }
 
     setIsSwitching(true);
 
-    Animated.timing(transition, {
-      toValue: 1,
+    if (!isDesktop) {
+      Animated.timing(mobileOpacity, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished) {
+          mobileOpacity.setValue(1);
+          setIsSwitching(false);
+          return;
+        }
+
+        setActiveMode(targetMode);
+        progress.setValue(targetMode === "login" ? 0 : 1);
+
+        Animated.timing(mobileOpacity, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start(() => setIsSwitching(false));
+      });
+      return;
+    }
+
+    Animated.timing(progress, {
+      toValue: targetMode === "login" ? 0 : 1,
       duration: AUTH_SWITCH_DURATION,
       easing: Easing.inOut(Easing.cubic),
-      useNativeDriver: false,
+      useNativeDriver: true,
     }).start(({ finished }) => {
       if (finished) {
-        onSwitch();
-        return;
+        setActiveMode(targetMode);
       }
 
-      transition.setValue(0);
       setIsSwitching(false);
     });
   }
 
-  const formPanel = (
-    <Animated.View
-      pointerEvents={isSwitching ? "none" : "auto"}
-      style={[
-        styles.formPanel,
-        isDesktop ? styles.desktopPanel : styles.mobileFormPanel,
-        formAnimatedStyle,
-      ]}
-    >
-      <View style={styles.formContent}>
-        <Text style={styles.formTitle}>{title}</Text>
-        <View style={styles.socialRow} accessibilityLabel="Social login options">
-          {[
-            { label: "G", accessibilityLabel: "Google" },
-            { label: "f", accessibilityLabel: "Facebook" },
-            { label: "GH", accessibilityLabel: "GitHub" },
-            { label: "in", accessibilityLabel: "LinkedIn" },
-          ].map((item) => (
-            <View
-              key={item.accessibilityLabel}
-              style={styles.socialIcon}
-              accessibilityLabel={`${item.accessibilityLabel} login coming soon`}
-            >
-              <Text style={styles.socialIconText}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
-        <Text style={styles.formHint}>{formHint}</Text>
-        {children}
-      </View>
-    </Animated.View>
+  const loginFormStyle = {
+    opacity: progress.interpolate({
+      inputRange: [0, 0.42, 0.58, 1],
+      outputRange: [1, 0.45, 0, 0],
+    }),
+    transform: [
+      {
+        translateX: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, panelDistance],
+        }),
+      },
+    ],
+  };
+
+  const registerFormStyle = {
+    opacity: progress.interpolate({
+      inputRange: [0, 0.42, 0.58, 1],
+      outputRange: [0, 0, 0.45, 1],
+    }),
+    transform: [
+      {
+        translateX: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, panelDistance],
+        }),
+      },
+    ],
+  };
+
+  const togglePanelStyle = {
+    transform: [
+      {
+        translateX: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -panelDistance],
+        }),
+      },
+      {
+        scale: progress.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [1, 1.025, 1],
+        }),
+      },
+    ],
+  };
+
+  const loginPanelContentStyle = {
+    opacity: progress.interpolate({
+      inputRange: [0, 0.38, 0.58, 1],
+      outputRange: [1, 0.25, 0, 0],
+    }),
+    transform: [
+      {
+        translateX: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 180],
+        }),
+      },
+    ],
+  };
+
+  const registerPanelContentStyle = {
+    opacity: progress.interpolate({
+      inputRange: [0, 0.42, 0.62, 1],
+      outputRange: [0, 0, 0.25, 1],
+    }),
+    transform: [
+      {
+        translateX: progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [-180, 0],
+        }),
+      },
+    ],
+  };
+
+  const loginFormPanel = (
+    <FormPanel title="Sign In" hint="or use your email and password">
+      {loginForm}
+    </FormPanel>
   );
 
-  const togglePanel = (
-    <Animated.View
-      style={[
-        styles.togglePanel,
-        isDesktop ? styles.desktopPanel : styles.mobileTogglePanel,
-        isDesktop &&
-          (mode === "login"
-            ? styles.togglePanelRight
-            : styles.togglePanelLeft),
-        toggleAnimatedStyle,
-      ]}
-    >
-      <View style={styles.toggleGlowTop} />
-      <View style={styles.toggleGlowBottom} />
-      <Text style={styles.brand}>SHOPPILOT</Text>
-      <Text style={styles.panelTitle}>{panelTitle}</Text>
-      <Text style={styles.panelDescription}>{panelDescription}</Text>
-      <Pressable
-        accessibilityRole="button"
-        disabled={isSwitching}
-        onPress={handleSwitch}
-        style={({ pressed }) => [
-          styles.switchButton,
-          pressed && !isSwitching && styles.switchButtonPressed,
-          isSwitching && styles.switchButtonDisabled,
-        ]}
-      >
-        <Text style={styles.switchButtonText}>
-          {isSwitching ? "Switching..." : switchLabel}
-        </Text>
-      </Pressable>
-    </Animated.View>
+  const registerFormPanel = (
+    <FormPanel title="Create Account" hint="or use your email for registration">
+      {registerForm}
+    </FormPanel>
   );
 
   return (
@@ -243,35 +224,190 @@ export function AuthLayout({
         <View style={styles.page}>
           <View style={styles.pageGlowLeft} />
           <View style={styles.pageGlowRight} />
-          <Animated.View
-            style={[
-              styles.card,
-              isDesktop ? styles.desktopCard : styles.mobileCard,
-              mobileCardAnimatedStyle,
-            ]}
-          >
-            {isDesktop ? (
-              mode === "login" ? (
-                <>
-                  {formPanel}
-                  {togglePanel}
-                </>
-              ) : (
-                <>
-                  {togglePanel}
-                  {formPanel}
-                </>
-              )
-            ) : (
-              <>
-                {togglePanel}
-                {formPanel}
-              </>
-            )}
-          </Animated.View>
+
+          {isDesktop ? (
+            <View style={[styles.card, styles.desktopCard]}>
+              <Animated.View
+                pointerEvents={
+                  activeMode === "login" && !isSwitching ? "auto" : "none"
+                }
+                style={[
+                  styles.desktopFormLayer,
+                  styles.formPanel,
+                  loginFormStyle,
+                ]}
+              >
+                {loginFormPanel}
+              </Animated.View>
+
+              <Animated.View
+                pointerEvents={
+                  activeMode === "register" && !isSwitching ? "auto" : "none"
+                }
+                style={[
+                  styles.desktopFormLayer,
+                  styles.formPanel,
+                  registerFormStyle,
+                ]}
+              >
+                {registerFormPanel}
+              </Animated.View>
+
+              <Animated.View
+                style={[
+                  styles.desktopTogglePanel,
+                  styles.togglePanel,
+                  togglePanelStyle,
+                ]}
+              >
+                <View style={styles.toggleGlowTop} />
+                <View style={styles.toggleGlowBottom} />
+
+                <Animated.View
+                  pointerEvents={activeMode === "login" ? "auto" : "none"}
+                  style={[styles.panelContent, loginPanelContentStyle]}
+                >
+                  <PanelCopy
+                    title="Hello, Friend!"
+                    description="Register with your details to start managing products, orders, inventory, and store insights."
+                    buttonLabel="Sign Up"
+                    disabled={isSwitching}
+                    onPress={() => switchMode("register")}
+                  />
+                </Animated.View>
+
+                <Animated.View
+                  pointerEvents={activeMode === "register" ? "auto" : "none"}
+                  style={[styles.panelContent, registerPanelContentStyle]}
+                >
+                  <PanelCopy
+                    title="Welcome Back!"
+                    description="Already have an account? Sign in with your details to continue managing your ShopPilot store."
+                    buttonLabel="Sign In"
+                    disabled={isSwitching}
+                    onPress={() => switchMode("login")}
+                  />
+                </Animated.View>
+              </Animated.View>
+            </View>
+          ) : (
+            <Animated.View
+              style={[
+                styles.card,
+                styles.mobileCard,
+                {
+                  opacity: mobileOpacity,
+                  transform: [
+                    {
+                      translateY: mobileOpacity.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [18, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <View style={[styles.togglePanel, styles.mobileTogglePanel]}>
+                <View style={styles.toggleGlowTop} />
+                <View style={styles.toggleGlowBottom} />
+                {activeMode === "login" ? (
+                  <PanelCopy
+                    title="Hello, Friend!"
+                    description="Register with your details to start managing your ShopPilot store."
+                    buttonLabel="Sign Up"
+                    disabled={isSwitching}
+                    onPress={() => switchMode("register")}
+                  />
+                ) : (
+                  <PanelCopy
+                    title="Welcome Back!"
+                    description="Already have an account? Sign in to continue managing your ShopPilot store."
+                    buttonLabel="Sign In"
+                    disabled={isSwitching}
+                    onPress={() => switchMode("login")}
+                  />
+                )}
+              </View>
+
+              <View style={[styles.formPanel, styles.mobileFormPanel]}>
+                {activeMode === "login" ? loginFormPanel : registerFormPanel}
+              </View>
+            </Animated.View>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function FormPanel({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint: string;
+  children: ReactNode;
+}) {
+  return (
+    <View style={styles.formContent}>
+      <Text style={styles.formTitle}>{title}</Text>
+      <View style={styles.socialRow} accessibilityLabel="Social login options">
+        {[
+          { label: "G", accessibilityLabel: "Google" },
+          { label: "f", accessibilityLabel: "Facebook" },
+          { label: "GH", accessibilityLabel: "GitHub" },
+          { label: "in", accessibilityLabel: "LinkedIn" },
+        ].map((item) => (
+          <View
+            key={item.accessibilityLabel}
+            style={styles.socialIcon}
+            accessibilityLabel={`${item.accessibilityLabel} login coming soon`}
+          >
+            <Text style={styles.socialIconText}>{item.label}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.formHint}>{hint}</Text>
+      {children}
+    </View>
+  );
+}
+
+function PanelCopy({
+  title,
+  description,
+  buttonLabel,
+  onPress,
+  disabled,
+}: {
+  title: string;
+  description: string;
+  buttonLabel: string;
+  onPress: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <View style={styles.panelCopy}>
+      <Text style={styles.brand}>SHOPPILOT</Text>
+      <Text style={styles.panelTitle}>{title}</Text>
+      <Text style={styles.panelDescription}>{description}</Text>
+      <Pressable
+        accessibilityRole="button"
+        disabled={disabled}
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.switchButton,
+          pressed && !disabled && styles.switchButtonPressed,
+          disabled && styles.switchButtonDisabled,
+        ]}
+      >
+        <Text style={styles.switchButtonText}>
+          {disabled ? "Switching..." : buttonLabel}
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -351,7 +487,7 @@ const styles = StyleSheet.create({
   },
   page: {
     flex: 1,
-    minHeight: 620,
+    minHeight: 660,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -390,16 +526,19 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   desktopCard: {
+    position: "relative",
     maxWidth: 900,
-    minHeight: 560,
-    flexDirection: "row",
+    height: 600,
   },
   mobileCard: {
     maxWidth: 460,
   },
-  desktopPanel: {
+  desktopFormLayer: {
+    position: "absolute",
+    left: 0,
+    top: 0,
     width: "50%",
-    minHeight: 560,
+    height: "100%",
   },
   formPanel: {
     zIndex: 1,
@@ -495,29 +634,42 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
     textTransform: "uppercase",
   },
+  desktopTogglePanel: {
+    position: "absolute",
+    left: "50%",
+    top: 0,
+    width: "50%",
+    height: "100%",
+  },
   togglePanel: {
-    zIndex: 2,
-    position: "relative",
+    zIndex: 3,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: authColors.purple,
-    paddingHorizontal: 38,
-    paddingVertical: 42,
-  },
-  togglePanelRight: {
-    borderTopLeftRadius: 140,
-    borderBottomLeftRadius: 100,
-  },
-  togglePanelLeft: {
-    borderTopRightRadius: 140,
-    borderBottomRightRadius: 100,
   },
   mobileTogglePanel: {
     width: "100%",
     minHeight: 265,
     borderBottomLeftRadius: 70,
     borderBottomRightRadius: 70,
+    paddingHorizontal: 38,
+    paddingVertical: 42,
+  },
+  panelContent: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 38,
+    paddingVertical: 42,
+  },
+  panelCopy: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   toggleGlowTop: {
     position: "absolute",
