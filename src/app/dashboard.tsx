@@ -8,7 +8,8 @@ import {
   Text,
   View,
 } from "react-native";
-import { getDashboardMetrics, getOrders } from "../api/merchantApi";
+import { getDashboardMetrics } from "../api/merchantApi";
+import { getOrders } from "../api/orderApi";
 import { getProducts } from "../api/productApi";
 import { AppButton } from "../components/AppButton";
 import { Card } from "../components/Card";
@@ -18,6 +19,17 @@ import { useAuth } from "../contexts/AuthContext";
 import { DashboardMetrics, Order, Product } from "../types/commerce";
 import { formatCurrency } from "../utils/formatCurrency";
 import { isLowStock } from "../utils/inventory";
+
+function isToday(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
+}
 
 export default function DashboardScreen() {
   const { session, user, signOut } = useAuth();
@@ -37,13 +49,26 @@ export default function DashboardScreen() {
       try {
         const [metricsData, ordersData, productsData] = await Promise.all([
           getDashboardMetrics(),
-          getOrders(),
+          getOrders(session.access_token),
           getProducts(session.access_token),
         ]);
 
         const lowStockProducts = productsData.filter(isLowStock);
+        const revenueToday = ordersData
+          .filter(
+            (order) =>
+              isToday(order.createdAt) && order.status !== "refunded"
+          )
+          .reduce((total, order) => total + order.total, 0);
+        const openOrders = ordersData.filter(
+          (order) =>
+            order.status !== "delivered" && order.status !== "refunded"
+        ).length;
+
         setMetrics({
           ...metricsData,
+          revenueToday,
+          openOrders,
           lowStockProducts: lowStockProducts.length,
         });
         setRecentOrders(ordersData.slice(0, 3));
@@ -137,15 +162,22 @@ export default function DashboardScreen() {
 
       <Card>
         <Text style={styles.sectionTitle}>Recent Orders</Text>
-        {recentOrders.map((order) => (
-          <View key={order.id} style={styles.row}>
-            <View>
-              <Text style={styles.rowTitle}>{order.customerName}</Text>
-              <Text style={styles.rowMeta}>{formatCurrency(order.total)}</Text>
+        {recentOrders.length > 0 ? (
+          recentOrders.map((order) => (
+            <View key={order.id} style={styles.row}>
+              <View>
+                <Text style={styles.orderNumber}>
+                  {order.orderNumber ?? order.id}
+                </Text>
+                <Text style={styles.rowTitle}>{order.customerName}</Text>
+                <Text style={styles.rowMeta}>{formatCurrency(order.total)}</Text>
+              </View>
+              <StatusPill label={order.status} tone="info" />
             </View>
-            <StatusPill label={order.status} tone="info" />
-          </View>
-        ))}
+          ))
+        ) : (
+          <Text style={styles.rowMeta}>No recent orders.</Text>
+        )}
       </Card>
 
       <Card>
@@ -196,6 +228,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  orderNumber: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
+    marginBottom: spacing.xs,
   },
   rowTitle: { fontWeight: "800", color: colors.text },
   rowMeta: { color: colors.muted },
