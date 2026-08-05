@@ -1,396 +1,306 @@
 # ShopPilot Mobile
 
-ShopPilot Mobile is a React Native merchant dashboard built with Expo, TypeScript, and Expo Router. The project is inspired by Shopify-style commerce workflows and focuses on product management, inventory tracking, order fulfillment, and store insights.
+A cross-platform merchant operations dashboard built with **React Native**, **Expo**, **TypeScript**, **Expo Router**, and **Supabase**.
 
-This project was built as a portfolio application to demonstrate React Native mobile development, TypeScript, reusable UI components, typed API services, mobile-first UI design, and commerce workflow development.
+ShopPilot helps merchants manage products, inventory, orders, store settings, revenue, and storefront analytics from one responsive application. It was developed as a portfolio project to demonstrate production-style mobile architecture, authenticated data flows, row-level security, file storage, typed APIs, and commerce workflows.
 
----
+<p align="center">
+  <img src="screenshots/dashboard.png" alt="ShopPilot dashboard" width="900" />
+</p>
 
-## Overview
+## Highlights
 
-ShopPilot Mobile helps store owners manage core commerce operations from a mobile dashboard.
-
-The app includes:
-
-- Demo login flow
-- Merchant dashboard
-- Product catalog management
-- Product detail and inventory updates
-- Order list and fulfillment workflow
-- Order detail screen with status updates
-- Revenue insights and inventory risk monitoring
-- Reusable UI components
-- Typed mock API service layer
-
----
+- Email/password authentication with session persistence
+- Email confirmation and password recovery
+- Protected routes for authenticated merchants
+- Product CRUD with search, filters, inventory, tags, status, and image uploads
+- Product image replacement and Storage cleanup
+- Order and line-item management
+- Fulfillment workflow and refunds
+- Store profile, logo, business email, description, currency, and inventory threshold
+- Revenue, traffic, conversion funnel, and top-product analytics
+- Merchant isolation through Supabase Row Level Security
+- Responsive layouts for web and mobile
 
 ## Tech Stack
 
-- React Native
-- Expo
-- TypeScript
-- Expo Router
-- AsyncStorage
-- React Hooks
-- Mock API service layer
-- Custom reusable UI components
+| Area | Technology |
+| --- | --- |
+| Application | React Native, React 19, Expo 57 |
+| Navigation | Expo Router |
+| Language | TypeScript |
+| Backend | Supabase Postgres and REST/RPC APIs |
+| Authentication | Supabase Auth |
+| File storage | Supabase Storage |
+| Local persistence | AsyncStorage |
+| Media | Expo Image, Expo Image Picker |
+| Platforms | Android, iOS, Web |
 
----
-
-## Features
+## Core Features
 
 ### Authentication
 
-- Demo login screen
-- Persistent session storage using AsyncStorage
-- Automatic redirect based on login state
-
-Demo account:
-
-```txt
-Email: tri.do@example.com
-Password: demo1234
-```
-
----
+- Register with email and password
+- Confirm email before accessing merchant data
+- Sign in and sign out
+- Restore sessions after reload or app restart
+- Request a password-reset email
+- Update the password from a recovery link
+- Redirect unauthenticated users away from protected routes
 
 ### Merchant Dashboard
 
-The dashboard provides a quick overview of store performance.
+The dashboard combines operational and performance data:
 
-Included metrics:
-
-- Revenue Today
-- Open Orders
-- Low Stock Products
-- Conversion Rate
-
-The dashboard also includes:
-
-- Quick navigation actions
+- Revenue today
+- Open orders
+- Low-stock products
+- Seven-day conversion rate
 - Recent orders
-- Low stock alerts
-
----
+- Inventory alerts
+- Store identity, logo, and business email
+- Quick navigation to products, orders, insights, and settings
 
 ### Product Management
 
-The product catalog allows merchants to:
+Merchants can:
 
-- View all products
-- Search products by name or vendor
-- Filter products by status
-- Filter low-stock products
-- View product detail
-- Update inventory
-- Toggle product publishing status
-
-Product statuses include:
-
-- Active
-- Draft
-- Archived
-
----
+- Create, edit, view, and delete products
+- Upload, replace, and remove product images
+- Search by title or vendor
+- Filter by product status and inventory risk
+- Manage price, tags, stock, and publishing status
+- Use a merchant-configurable low-stock threshold
 
 ### Order Management
 
-The order module allows merchants to:
+- View merchant-owned orders and line items
+- Filter orders by status
+- Open a detailed customer and item breakdown
+- Move orders through the fulfillment workflow
+- Refund orders with confirmation
+- Reflect order changes in Dashboard and Insights
 
-- View all orders
-- Filter orders by fulfillment status
-- Open order detail pages
-- Move orders through a fulfillment workflow
-- Refund orders
-
-Order status workflow:
-
-```txt
+```text
 pending -> paid -> packed -> shipped -> delivered
+                     \-> refunded
 ```
 
----
+### Store Settings
 
-### Insights
+Each merchant can configure:
 
-The insights screen shows store performance and risk indicators.
+- Store name
+- Business email
+- Store description
+- Store logo
+- Currency
+- Low-stock threshold
 
-Included sections:
+Currency and inventory settings are reused across Products, Orders, Dashboard, and Insights.
 
-- Weekly revenue chart
-- Projected weekly revenue
-- Inventory risk alerts
+### Analytics
 
----
+ShopPilot records and aggregates storefront events through Supabase RPC functions.
+
+Tracked events include:
+
+- Session started
+- Product viewed
+- Product added to cart
+- Checkout started
+- Checkout completed
+
+Insights include:
+
+- Seven-day revenue
+- Store sessions
+- Conversion funnel
+- Daily traffic
+- Product views and add-to-cart activity
+- Top products
+- Average order value
+- Inventory risks
+
+The merchant app includes sample analytics for demonstration. The tracking helper in `src/lib/storeAnalytics.ts` is ready to connect to a customer storefront.
 
 ## Screenshots
 
-### Login
-
-![Login Screen](screenshots/login.png)
-
-### Dashboard
-
-![Dashboard Screen](screenshots/dashboard.png)
-
-### Products
-
-![Products Screen](screenshots/products.png)
-
-### Product Detail
-
-![Product Detail Screen](screenshots/product-detail.png)
-
-### Orders
-
-![Orders Screen](screenshots/orders.png)
-
-### Order Detail
-
-![Order Detail Screen](screenshots/order-detail.png)
-
-### Insights
-
-![Insights Screen](screenshots/insights.png)
-
----
-
-## Project Structure
-
-```txt
-shoppilot-mobile/
-│
-├── app/
-│   ├── _layout.tsx
-│   ├── index.tsx
-│   ├── login.tsx
-│   ├── dashboard.tsx
-│   ├── insights.tsx
-│   │
-│   ├── products/
-│   │   ├── index.tsx
-│   │   └── [id].tsx
-│   │
-│   └── orders/
-│       ├── index.tsx
-│       └── [id].tsx
-│
-├── src/
-│   ├── api/
-│   │   └── merchantApi.ts
-│   │
-│   ├── components/
-│   │   ├── AppButton.tsx
-│   │   ├── Card.tsx
-│   │   ├── EmptyState.tsx
-│   │   └── StatusPill.tsx
-│   │
-│   ├── constants/
-│   │   └── theme.ts
-│   │
-│   ├── data/
-│   │   └── mockData.ts
-│   │
-│   ├── types/
-│   │   └── commerce.ts
-│   │
-│   └── utils/
-│       ├── formatCurrency.ts
-│       └── inventory.ts
-│
-├── screenshots/
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
----
+<table>
+  <tr>
+    <td align="center"><strong>Sign In</strong></td>
+    <td align="center"><strong>Dashboard</strong></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/login.png" alt="Sign in screen" /></td>
+    <td><img src="screenshots/dashboard.png" alt="Merchant dashboard" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Products</strong></td>
+    <td align="center"><strong>Product Detail</strong></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/products.png" alt="Product list" /></td>
+    <td><img src="screenshots/product-detail.png" alt="Product detail" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Orders</strong></td>
+    <td align="center"><strong>Order Detail</strong></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/orders.png" alt="Order list" /></td>
+    <td><img src="screenshots/order-detail.png" alt="Order detail" /></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><strong>Insights</strong></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="screenshots/insights.png" alt="Revenue and storefront analytics" /></td>
+  </tr>
+</table>
 
 ## Architecture
 
-The project separates screens, business logic, mock data, TypeScript types, and reusable UI components into clear folders.
+```text
+src/
+├── api/             # Typed Supabase data access and RPC calls
+├── app/             # Expo Router screens and protected routes
+│   ├── orders/
+│   └── products/
+├── components/      # Reusable UI components
+├── constants/       # Theme tokens
+├── contexts/        # Authentication and store settings state
+├── lib/             # Supabase Auth, Storage, and analytics helpers
+├── types/           # Commerce, authentication, and analytics models
+└── utils/           # Formatting, inventory, and analytics utilities
 
-### `app/`
+supabase/
+└── migrations/      # Database, RLS, Storage, settings, and analytics SQL
+```
 
-Contains all Expo Router screens and navigation routes.
+The application separates UI, session state, database access, storage operations, domain types, and business rules. Screens call typed API modules instead of accessing Supabase directly.
 
-Main screens:
+## Supabase Data Model
 
-- `login.tsx`
-- `dashboard.tsx`
-- `products/index.tsx`
-- `products/[id].tsx`
-- `orders/index.tsx`
-- `orders/[id].tsx`
-- `insights.tsx`
+Main resources include:
 
-### `src/api/`
+- `profiles`
+- `products`
+- `orders`
+- `order_items`
+- `analytics_events`
+- `product-images` Storage bucket
+- `store-logos` Storage bucket
 
-Contains the typed mock API service layer. Screens do not access mock data directly. They call API functions such as:
-
-- `getProducts()`
-- `getProductById()`
-- `updateProductInventory()`
-- `getOrders()`
-- `updateOrderStatus()`
-- `getDashboardMetrics()`
-- `getRevenuePoints()`
-
-This structure makes the app easier to connect to a real backend later.
-
-### `src/components/`
-
-Contains reusable UI components used across multiple screens.
-
-Examples:
-
-- `AppButton`
-- `Card`
-- `EmptyState`
-- `StatusPill`
-
-### `src/types/`
-
-Contains TypeScript domain models for products, orders, dashboard metrics, and revenue data.
-
-### `src/utils/`
-
-Contains helper functions for currency formatting, inventory checks, and order status transitions.
-
----
+Every merchant-owned table uses Row Level Security. Product images and store logos are stored in user-specific folders and protected by Storage policies.
 
 ## Run Locally
 
-Clone the repository:
+### Prerequisites
+
+- Node.js 20 or later
+- npm
+- Expo-compatible Android/iOS environment, or a modern browser
+- A Supabase project
+
+### Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/shoppilot-mobile.git
-```
-
-Go into the project folder:
-
-```bash
+git clone https://github.com/dominhtri055/shoppilot-mobile.git
 cd shoppilot-mobile
-```
-
-Install dependencies:
-
-```bash
 npm install
 ```
 
-Start the Expo development server:
+Create a local environment file:
+
+```bash
+cp .env.example .env
+```
+
+On PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Add your Supabase values:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+```
+
+Run every SQL file in `supabase/migrations/` in numeric order using the Supabase SQL Editor.
+
+Start the project:
 
 ```bash
 npm run start
 ```
 
-Run TypeScript check:
+Platform shortcuts:
+
+```bash
+npm run android
+npm run ios
+npm run web
+```
+
+## Validation
 
 ```bash
 npx tsc --noEmit
+npm run lint
 ```
 
----
+Recommended manual QA:
 
-## Demo Login
+1. Register and confirm a new account.
+2. Test sign-in, session restoration, logout, and password recovery.
+3. Create, edit, filter, and delete products with and without images.
+4. Update order statuses and verify dashboard totals.
+5. Change currency and inventory threshold in Store Settings.
+6. Verify that a second merchant cannot access the first merchant's data or files.
+7. Confirm Dashboard and Insights load the merchant's analytics report.
 
-Use this demo account to access the app:
+## Setup References
 
-```txt
-Email: tri.do@example.com
-Password: demo1234
-```
+- `PRODUCTS_SETUP.md`
+- `ORDERS_SETUP.md`
+- `STORE_SETTINGS_SETUP.md`
+- `ANALYTICS_SETUP.md`
 
----
+## Portfolio Summary
 
-## Key Technical Highlights
+ShopPilot Mobile demonstrates:
 
-- Built a React Native mobile commerce dashboard with Expo and TypeScript
-- Used Expo Router for file-based navigation
-- Implemented typed commerce domain models for products, orders, metrics, and revenue data
-- Created reusable UI components for cards, buttons, badges, and empty states
-- Built a mock API service layer to simulate backend communication
-- Added product search, product filtering, and inventory update functionality
-- Added order filtering and fulfillment status transitions
-- Added revenue insights and inventory risk monitoring
-- Implemented loading, error, and empty UI states
-- Used AsyncStorage for persistent demo authentication
-- Designed the app around real merchant workflows
+- Cross-platform React Native development
+- File-based navigation with Expo Router
+- Type-safe API and domain modeling
+- Supabase authentication and password recovery
+- PostgreSQL Row Level Security
+- Secure Storage uploads and cleanup
+- Product and order workflow design
+- Server-side analytics aggregation with RPC functions
+- Responsive, reusable UI architecture
 
----
+## Current Scope
 
-## Why This Project
+ShopPilot is a merchant management application. A future customer storefront can use the existing product data and `storeAnalytics` helper to add browsing, cart, checkout, and payment flows.
 
-This project was created to demonstrate skills relevant to React Native mobile engineering roles, especially commerce-focused applications.
+## Roadmap
 
-It shows the ability to:
-
-- Build mobile features with React Native
-- Use TypeScript for safer application logic
-- Structure a scalable front-end project
-- Create reusable UI components
-- Work with commerce workflows
-- Separate UI logic from API and data logic
-- Implement practical product and order management features
-- Design user-focused merchant tools
-
----
-
-## Resume Bullets
-
-```txt
-- Built a React Native commerce dashboard with Expo, TypeScript, and Expo Router for product, inventory, order, and revenue management.
-- Implemented reusable mobile UI components, typed API services, persistent demo authentication, and merchant-focused workflows.
-- Added product search/filtering, inventory updates, order status transitions, revenue insights, loading states, and error handling.
-```
-
----
-
-## Portfolio Description
-
-ShopPilot Mobile is a React Native merchant dashboard inspired by Shopify-style commerce workflows. It allows store owners to monitor revenue, manage products, update inventory, process orders, and view store insights from a mobile-first interface.
-
-The app uses Expo, TypeScript, Expo Router, reusable UI components, typed domain models, AsyncStorage authentication, and a mock API service layer.
-
----
-
-## GitHub Topics
-
-Recommended repository topics:
-
-```txt
-react-native
-expo
-typescript
-expo-router
-mobile-app
-commerce
-shopify
-inventory-management
-order-management
-portfolio-project
-```
-
----
-
-## Future Improvements
-
-Potential future enhancements:
-
-- Connect to a real backend API
-- Add real authentication
-- Add product image upload
-- Add push notifications for low stock
-- Add dark mode
-- Add unit tests
-- Add offline support
-- Add real chart library
-- Add role-based merchant permissions
-- Add Shopify API integration
-
----
+- Automated unit and integration tests
+- Push notifications for orders and low inventory
+- Offline-aware caching and retry queues
+- Role-based staff access
+- Customer storefront and cart
+- Payment-provider integration
+- EAS production builds and store release assets
 
 ## Author
 
-Tri Do
+**Tri Do**
+
+- GitHub: `dominhtri055`
+- LinkedIn: `trido2908`
