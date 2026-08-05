@@ -15,6 +15,7 @@ import { Card } from "../components/Card";
 import { StatusPill } from "../components/StatusPill";
 import { colors, spacing } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
+import { useStoreSettings } from "../contexts/StoreSettingsContext";
 import { Product, RevenuePoint } from "../types/commerce";
 import {
   buildWeeklyRevenue,
@@ -33,20 +34,16 @@ const EMPTY_SUMMARY: RevenueSummary = {
 
 export default function InsightsScreen() {
   const { session } = useAuth();
-
+  const { settings } = useStoreSettings();
   const [revenue, setRevenue] = useState<RevenuePoint[]>([]);
-  const [summary, setSummary] =
-    useState<RevenueSummary>(EMPTY_SUMMARY);
+  const [summary, setSummary] = useState<RevenueSummary>(EMPTY_SUMMARY);
   const [lowStock, setLowStock] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] =
-    useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadInsights = useCallback(async () => {
     if (!session?.access_token) {
-      setErrorMessage(
-        "Your session has expired. Please sign in again."
-      );
+      setErrorMessage("Your session has expired. Please sign in again.");
       setLoading(false);
       return;
     }
@@ -62,17 +59,19 @@ export default function InsightsScreen() {
 
       setRevenue(buildWeeklyRevenue(ordersData));
       setSummary(getWeeklyRevenueSummary(ordersData));
-      setLowStock(productsData.filter(isLowStock));
+      setLowStock(
+        productsData.filter((product) =>
+          isLowStock(product, settings.lowStockThreshold)
+        )
+      );
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Insights could not be loaded."
+        error instanceof Error ? error.message : "Insights could not be loaded."
       );
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token]);
+  }, [session?.access_token, settings.lowStockThreshold]);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,10 +82,7 @@ export default function InsightsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-        />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -95,34 +91,19 @@ export default function InsightsScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.error}>{errorMessage}</Text>
-
-        <AppButton
-          title="Try again"
-          onPress={() => void loadInsights()}
-        />
+        <AppButton title="Try again" onPress={() => void loadInsights()} />
       </View>
     );
   }
 
-  const maxRevenue = Math.max(
-    1,
-    ...revenue.map((point) => point.value)
-  );
+  const maxRevenue = Math.max(1, ...revenue.map((point) => point.value));
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      {errorMessage ? (
-        <Text style={styles.error}>{errorMessage}</Text>
-      ) : null}
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
       <Card>
-        <Text style={styles.sectionTitle}>
-          Weekly Revenue
-        </Text>
-
+        <Text style={styles.sectionTitle}>Weekly Revenue</Text>
         <View style={styles.chart}>
           {revenue.map((point) => (
             <View key={point.label} style={styles.barItem}>
@@ -133,94 +114,61 @@ export default function InsightsScreen() {
                     height:
                       point.value === 0
                         ? 4
-                        : Math.max(
-                            24,
-                            (point.value / maxRevenue) * 160
-                          ),
+                        : Math.max(24, (point.value / maxRevenue) * 160),
                   },
                 ]}
               />
-
-              <Text style={styles.barLabel}>
-                {point.label}
-              </Text>
+              <Text style={styles.barLabel}>{point.label}</Text>
             </View>
           ))}
         </View>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>
-          Store Health
-        </Text>
-
+        <Text style={styles.sectionTitle}>Store Health</Text>
         <Text style={styles.bigNumber}>
-          {formatCurrency(summary.weeklyRevenue)}
+          {formatCurrency(summary.weeklyRevenue, settings.currency)}
         </Text>
-
-        <Text style={styles.muted}>
-          Revenue from the last 7 days
-        </Text>
+        <Text style={styles.muted}>Revenue from the last 7 days</Text>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>
-            Average order value
-          </Text>
-
+          <Text style={styles.summaryLabel}>Average order value</Text>
           <Text style={styles.summaryValue}>
-            {formatCurrency(summary.averageOrderValue)}
+            {formatCurrency(summary.averageOrderValue, settings.currency)}
           </Text>
         </View>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>
-            Revenue orders
-          </Text>
-
-          <Text style={styles.summaryValue}>
-            {summary.revenueOrderCount}
-          </Text>
+          <Text style={styles.summaryLabel}>Revenue orders</Text>
+          <Text style={styles.summaryValue}>{summary.revenueOrderCount}</Text>
         </View>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>
-            Delivered orders
-          </Text>
-
-          <Text style={styles.summaryValue}>
-            {summary.deliveredOrderCount}
-          </Text>
+          <Text style={styles.summaryLabel}>Delivered orders</Text>
+          <Text style={styles.summaryValue}>{summary.deliveredOrderCount}</Text>
         </View>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>
-          Inventory Risks
+        <Text style={styles.sectionTitle}>Inventory Risks</Text>
+        <Text style={styles.thresholdNote}>
+          Alert threshold: {settings.lowStockThreshold} units
         </Text>
 
         {lowStock.length > 0 ? (
           lowStock.map((product) => (
             <View key={product.id} style={styles.row}>
               <View>
-                <Text style={styles.product}>
-                  {product.title}
-                </Text>
-
+                <Text style={styles.product}>{product.title}</Text>
                 <Text style={styles.muted}>
                   {product.inventory} units remaining
                 </Text>
               </View>
-
-              <StatusPill
-                label="Action needed"
-                tone="warning"
-              />
+              <StatusPill label="Action needed" tone="warning" />
             </View>
           ))
         ) : (
-          <Text style={styles.muted}>
-            No low-stock products.
-          </Text>
+          <Text style={styles.muted}>No low-stock products.</Text>
         )}
       </Card>
     </ScrollView>
@@ -285,6 +233,11 @@ const styles = StyleSheet.create({
   },
   muted: {
     color: colors.muted,
+  },
+  thresholdNote: {
+    color: colors.muted,
+    fontSize: 12,
+    marginBottom: spacing.md,
   },
   summaryRow: {
     flexDirection: "row",
