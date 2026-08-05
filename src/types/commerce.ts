@@ -8,6 +8,7 @@ export type Product = {
   inventory: number;
   status: ProductStatus;
   tags: string[];
+  imagePath: string | null;
   updatedAt: string;
 };
 

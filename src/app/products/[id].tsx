@@ -21,6 +21,8 @@ import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { Product } from "../../types/commerce";
 import { formatCurrency } from "../../utils/formatCurrency";
+import { Image } from "expo-image";
+import { getProductImageUrl } from "../../lib/supabaseStorage";
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,7 +57,9 @@ export default function ProductDetailScreen() {
       } catch (error) {
         if (active) {
           setErrorMessage(
-            error instanceof Error ? error.message : "Product could not be loaded."
+            error instanceof Error
+              ? error.message
+              : "Product could not be loaded.",
           );
         }
       } finally {
@@ -87,12 +91,14 @@ export default function ProductDetailScreen() {
       const updated = await updateProductInventory(
         product.id,
         nextInventory,
-        session.access_token
+        session.access_token,
       );
       setProduct(updated);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Inventory could not be updated."
+        error instanceof Error
+          ? error.message
+          : "Inventory could not be updated.",
       );
     } finally {
       setSaving(false);
@@ -110,14 +116,14 @@ export default function ProductDetailScreen() {
       const updated = await updateProductStatus(
         product.id,
         nextStatus,
-        session.access_token
+        session.access_token,
       );
       setProduct(updated);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Product status could not be updated."
+          : "Product status could not be updated.",
       );
     } finally {
       setSaving(false);
@@ -139,7 +145,9 @@ export default function ProductDetailScreen() {
       router.replace("/products" as Href);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Product could not be deleted."
+        error instanceof Error
+          ? error.message
+          : "Product could not be deleted.",
       );
       setConfirmingDelete(false);
     } finally {
@@ -174,6 +182,17 @@ export default function ProductDetailScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
+      {product.imagePath ? (
+        <Image
+          source={{
+            uri: getProductImageUrl(product.imagePath),
+          }}
+          style={styles.productImage}
+          contentFit="cover"
+        />
+      ) : (
+        <Text style={styles.noImageText}>No product image</Text>
+      )}
       <Card>
         <StatusPill
           label={product.status}
@@ -317,6 +336,29 @@ const styles = StyleSheet.create({
   },
   description: {
     color: colors.muted,
+    marginBottom: spacing.md,
+  },
+  productImage: {
+    width: "100%",
+    height: 320,
+    borderRadius: 16,
+    marginBottom: spacing.md,
+  },
+  productImagePlaceholder: {
+    width: "100%",
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    marginBottom: spacing.md,
+  },
+  noImageText: {
+    color: colors.muted,
+    fontStyle: "italic",
     marginBottom: spacing.md,
   },
 });

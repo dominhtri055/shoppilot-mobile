@@ -1,5 +1,12 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "expo-image";
+
+import {
+  deleteProductImage,
+  uploadProductImage,
+} from "../../lib/supabaseStorage";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,6 +31,45 @@ export default function NewProductScreen() {
   const [tags, setTags] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
+
+  async function handlePickImage() {
+    setErrorMessage(null);
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      setErrorMessage("Photo library permission is required.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.75,
+      base64: true,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    const asset = result.assets[0];
+
+    if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+      setErrorMessage("The selected image must be smaller than 5 MB.");
+      return;
+    }
+
+    if (!asset.base64) {
+      setErrorMessage("The selected image could not be processed.");
+      return;
+    }
+
+    setSelectedImage(asset);
+  }
 
   async function handleCreate() {
     setErrorMessage(null);
@@ -51,8 +97,21 @@ export default function NewProductScreen() {
       return;
     }
 
+    let uploadedImagePath: string | null = null;
+
     try {
       setSaving(true);
+
+      if (selectedImage?.base64) {
+        uploadedImagePath = await uploadProductImage({
+          base64: selectedImage.base64,
+          merchantId: user.id,
+          accessToken: session.access_token,
+          mimeType: selectedImage.mimeType,
+          fileName: selectedImage.fileName,
+        });
+      }
+
       const product = await createProduct(
         {
           title,
@@ -63,15 +122,26 @@ export default function NewProductScreen() {
             .split(",")
             .map((tag) => tag.trim())
             .filter(Boolean),
+          imagePath: uploadedImagePath,
         },
         user.id,
-        session.access_token
+        session.access_token,
       );
 
       router.replace(`/products/${product.id}` as Href);
     } catch (error) {
+      if (uploadedImagePath) {
+        try {
+          await deleteProductImage(uploadedImagePath, session.access_token);
+        } catch {
+          // Product creation error remains the primary error.
+        }
+      }
+
       setErrorMessage(
-        error instanceof Error ? error.message : "Product could not be created."
+        error instanceof Error
+          ? error.message
+          : "Product could not be created.",
       );
     } finally {
       setSaving(false);
@@ -92,7 +162,26 @@ export default function NewProductScreen() {
           <Text style={styles.subtitle}>
             Create a product for the signed-in merchant account.
           </Text>
+          <Text style={styles.label}>Product image</Text>
 
+          {selectedImage ? (
+            <Image
+              source={{ uri: selectedImage.uri }}
+              style={styles.preview}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Text style={styles.placeholderText}>No image selected</Text>
+            </View>
+          )}
+
+          <AppButton
+            title={selectedImage ? "Choose another image" : "Choose image"}
+            onPress={() => void handlePickImage()}
+            variant="secondary"
+            disabled={saving}
+          />
           <Text style={styles.label}>Product title</Text>
           <TextInput
             value={title}
@@ -164,6 +253,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center",
     padding: spacing.lg,
   },
   title: {
@@ -197,5 +289,27 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.sm,
+  },
+  preview: {
+    width: "100%",
+    height: 280,
+    borderRadius: 16,
+    marginBottom: spacing.md,
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: 110,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    marginBottom: spacing.md,
+  },
+  placeholderText: {
+    color: colors.muted,
+    fontWeight: "700",
   },
 });

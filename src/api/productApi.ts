@@ -10,6 +10,7 @@ type ProductRow = {
   inventory: number;
   status: ProductStatus;
   tags: string[] | null;
+  image_path: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -19,6 +20,7 @@ export type CreateProductInput = {
   vendor: string;
   price: number;
   inventory: number;
+  imagePath?: string | null;
   status?: ProductStatus;
   tags?: string[];
 };
@@ -29,6 +31,7 @@ function toProduct(row: ProductRow): Product {
     title: row.title,
     vendor: row.vendor,
     price: Number(row.price),
+    imagePath: row.image_path,
     inventory: row.inventory,
     status: row.status,
     tags: row.tags ?? [],
@@ -39,7 +42,7 @@ function toProduct(row: ProductRow): Product {
 export async function getProducts(accessToken: string): Promise<Product[]> {
   const rows = await supabaseRestRequest<ProductRow[]>(
     "/products?select=*&order=updated_at.desc",
-    accessToken
+    accessToken,
   );
 
   return rows.map(toProduct);
@@ -47,11 +50,11 @@ export async function getProducts(accessToken: string): Promise<Product[]> {
 
 export async function getProductById(
   id: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<Product> {
   const rows = await supabaseRestRequest<ProductRow[]>(
     `/products?id=eq.${encodeURIComponent(id)}&select=*&limit=1`,
-    accessToken
+    accessToken,
   );
 
   const product = rows[0];
@@ -66,7 +69,7 @@ export async function getProductById(
 export async function createProduct(
   input: CreateProductInput,
   merchantId: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<Product> {
   const rows = await supabaseRestRequest<ProductRow[]>(
     "/products?select=*",
@@ -84,8 +87,9 @@ export async function createProduct(
         inventory: Math.max(0, input.inventory),
         status: input.status ?? "active",
         tags: input.tags ?? [],
+        image_path: input.imagePath ?? null,
       }),
-    }
+    },
   );
 
   const product = rows[0];
@@ -100,7 +104,7 @@ export async function createProduct(
 export async function updateProductInventory(
   id: string,
   inventory: number,
-  accessToken: string
+  accessToken: string,
 ): Promise<Product> {
   return updateProduct(id, { inventory: Math.max(0, inventory) }, accessToken);
 }
@@ -108,7 +112,7 @@ export async function updateProductInventory(
 export async function updateProductStatus(
   id: string,
   status: ProductStatus,
-  accessToken: string
+  accessToken: string,
 ): Promise<Product> {
   return updateProduct(id, { status }, accessToken);
 }
@@ -116,7 +120,7 @@ export async function updateProductStatus(
 async function updateProduct(
   id: string,
   changes: Partial<Pick<ProductRow, "inventory" | "status">>,
-  accessToken: string
+  accessToken: string,
 ): Promise<Product> {
   const rows = await supabaseRestRequest<ProductRow[]>(
     `/products?id=eq.${encodeURIComponent(id)}&select=*`,
@@ -127,7 +131,7 @@ async function updateProduct(
         Prefer: "return=representation",
       },
       body: JSON.stringify(changes),
-    }
+    },
   );
 
   const product = rows[0];
@@ -148,6 +152,6 @@ export async function deleteProduct(id: string, accessToken: string) {
       headers: {
         Prefer: "return=minimal",
       },
-    }
+    },
   );
 }
