@@ -1,4 +1,4 @@
-import {
+import type {
   AnalyticsEventType,
   TrackStoreEventInput,
 } from "../types/analytics";
@@ -81,4 +81,4 @@ export async function trackStoreEvent({
   return eventId;
 }
 
-export type { AnalyticsEventType };
+export type { AnalyticsEventType } from "../types/analytics";
