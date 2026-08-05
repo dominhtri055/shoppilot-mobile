@@ -1,8 +1,4 @@
-import {
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Animated,
   Easing,
@@ -13,9 +9,9 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  type TextInputProps,
   useWindowDimensions,
   View,
+  type TextInputProps,
 } from "react-native";
 
 const authColors = {
@@ -353,22 +349,6 @@ function FormPanel({
   return (
     <View style={styles.formContent}>
       <Text style={styles.formTitle}>{title}</Text>
-      <View style={styles.socialRow} accessibilityLabel="Social login options">
-        {[
-          { label: "G", accessibilityLabel: "Google" },
-          { label: "f", accessibilityLabel: "Facebook" },
-          { label: "GH", accessibilityLabel: "GitHub" },
-          { label: "in", accessibilityLabel: "LinkedIn" },
-        ].map((item) => (
-          <View
-            key={item.accessibilityLabel}
-            style={styles.socialIcon}
-            accessibilityLabel={`${item.accessibilityLabel} login coming soon`}
-          >
-            <Text style={styles.socialIconText}>{item.label}</Text>
-          </View>
-        ))}
-      </View>
       <Text style={styles.formHint}>{hint}</Text>
       {children}
     </View>
@@ -561,28 +541,6 @@ const styles = StyleSheet.create({
     fontSize: 31,
     fontWeight: "900",
     textAlign: "center",
-  },
-  socialRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-    marginBottom: 14,
-    marginTop: 18,
-  },
-  socialIcon: {
-    width: 40,
-    height: 40,
-    borderWidth: 1,
-    borderColor: authColors.border,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: authColors.surface,
-  },
-  socialIconText: {
-    color: authColors.text,
-    fontSize: 13,
-    fontWeight: "900",
   },
   formHint: {
     color: authColors.muted,
