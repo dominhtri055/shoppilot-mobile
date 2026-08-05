@@ -16,6 +16,8 @@ type StoreSettingsRow = {
   currency: StoreCurrency | null;
   low_stock_threshold: number | null;
   logo_path: string | null;
+  store_slug: string | null;
+  is_store_published: boolean | null;
   updated_at: string;
 };
 
@@ -37,6 +39,8 @@ function toStoreSettings(row: StoreSettingsRow): StoreSettings {
         ? row.low_stock_threshold
         : 5,
     logoPath: row.logo_path,
+    storeSlug: row.store_slug?.trim() || fallback.storeSlug,
+    isPublished: row.is_store_published ?? false,
     updatedAt: row.updated_at,
   };
 }
@@ -64,6 +68,23 @@ export async function updateStoreSettings(
   input: UpdateStoreSettingsInput,
   accessToken: string
 ): Promise<StoreSettings> {
+  const payload: Record<string, string | number | boolean | null> = {
+    store_name: input.storeName.trim(),
+    business_email: input.businessEmail.trim().toLowerCase(),
+    store_description: input.description.trim(),
+    currency: input.currency,
+    low_stock_threshold: input.lowStockThreshold,
+    logo_path: input.logoPath,
+  };
+
+  if (typeof input.storeSlug === "string") {
+    payload.store_slug = input.storeSlug.trim().toLowerCase();
+  }
+
+  if (typeof input.isPublished === "boolean") {
+    payload.is_store_published = input.isPublished;
+  }
+
   const rows = await supabaseRestRequest<StoreSettingsRow[]>(
     `/profiles?id=eq.${encodeURIComponent(merchantId)}&select=*`,
     accessToken,
@@ -72,14 +93,7 @@ export async function updateStoreSettings(
       headers: {
         Prefer: "return=representation",
       },
-      body: JSON.stringify({
-        store_name: input.storeName.trim(),
-        business_email: input.businessEmail.trim().toLowerCase(),
-        store_description: input.description.trim(),
-        currency: input.currency,
-        low_stock_threshold: input.lowStockThreshold,
-        logo_path: input.logoPath,
-      }),
+      body: JSON.stringify(payload),
     }
   );
 
