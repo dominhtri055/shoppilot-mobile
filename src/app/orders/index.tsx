@@ -15,6 +15,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusPill } from "../../components/StatusPill";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
+import { useStoreSettings } from "../../contexts/StoreSettingsContext";
 import { Order, OrderStatus } from "../../types/commerce";
 import { formatCurrency } from "../../utils/formatCurrency";
 
@@ -22,6 +23,7 @@ type Filter = "all" | OrderStatus;
 
 export default function OrdersScreen() {
   const { session } = useAuth();
+  const { settings } = useStoreSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
@@ -65,12 +67,9 @@ export default function OrdersScreen() {
   );
 
   const filteredOrders = useMemo(() => {
-    if (filter === "all") {
-      return orders;
-    }
-
+    if (filter === "all") return orders;
     return orders.filter((order) => order.status === filter);
-  }, [orders, filter]);
+  }, [filter, orders]);
 
   if (loading) {
     return (
@@ -148,7 +147,7 @@ export default function OrdersScreen() {
                   </Text>
                   <Text style={styles.title}>{item.customerName}</Text>
                   <Text style={styles.meta}>
-                    {item.itemCount} items · {formatCurrency(item.total)}
+                    {item.itemCount} items · {formatCurrency(item.total, settings.currency)}
                   </Text>
                   <Text style={styles.date}>
                     {new Date(item.createdAt).toLocaleDateString()}
