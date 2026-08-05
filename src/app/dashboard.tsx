@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { router, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -15,6 +16,8 @@ import { Card } from "../components/Card";
 import { StatusPill } from "../components/StatusPill";
 import { colors, spacing } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
+import { useStoreSettings } from "../contexts/StoreSettingsContext";
+import { getStoreLogoUrl } from "../lib/storeLogoStorage";
 import { DashboardMetrics, Order, Product } from "../types/commerce";
 import { formatCurrency } from "../utils/formatCurrency";
 import { isLowStock } from "../utils/inventory";
@@ -32,6 +35,7 @@ function isToday(value: string) {
 
 export default function DashboardScreen() {
   const { session, user, signOut } = useAuth();
+  const { settings, errorMessage: settingsError } = useStoreSettings();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<Product[]>([]);
@@ -51,15 +55,17 @@ export default function DashboardScreen() {
           getProducts(session.access_token),
         ]);
 
-        const lowStockProducts = productsData.filter(isLowStock);
+        const lowStockProducts = productsData.filter((product) =>
+          isLowStock(product, settings.lowStockThreshold)
+        );
         const revenueToday = ordersData
           .filter(
-            (order) => isToday(order.createdAt) && order.status !== "refunded",
+            (order) => isToday(order.createdAt) && order.status !== "refunded"
           )
           .reduce((total, order) => total + order.total, 0);
         const openOrders = ordersData.filter(
           (order) =>
-            order.status !== "delivered" && order.status !== "refunded",
+            order.status !== "delivered" && order.status !== "refunded"
         ).length;
 
         setMetrics({
@@ -78,7 +84,7 @@ export default function DashboardScreen() {
     }
 
     void loadDashboard();
-  }, [session?.access_token]);
+  }, [session?.access_token, settings.lowStockThreshold]);
 
   async function handleSignOut() {
     try {
@@ -102,16 +108,42 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Merchant dashboard</Text>
-      <Text style={styles.subheading}>
-        Signed in as {user?.email ?? "merchant"}
-      </Text>
+      <View style={styles.storeHeader}>
+        {settings.logoPath ? (
+          <Image
+            source={{ uri: getStoreLogoUrl(settings.logoPath) }}
+            style={styles.logo}
+            contentFit="cover"
+            transition={150}
+          />
+        ) : (
+          <View style={styles.logoFallback}>
+            <Text style={styles.logoInitial}>
+              {settings.storeName.charAt(0).toUpperCase() || "S"}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.storeInfo}>
+          <Text style={styles.heading}>{settings.storeName}</Text>
+          <Text style={styles.subheading}>
+            {settings.businessEmail || user?.email || "merchant"}
+          </Text>
+          {settings.description ? (
+            <Text style={styles.description}>{settings.description}</Text>
+          ) : null}
+        </View>
+      </View>
+
+      {settingsError ? (
+        <Text style={styles.settingsWarning}>{settingsError}</Text>
+      ) : null}
 
       <View style={styles.grid}>
         <Card>
           <Text style={styles.metricLabel}>Revenue Today</Text>
           <Text style={styles.metric}>
-            {formatCurrency(metrics.revenueToday)}
+            {formatCurrency(metrics.revenueToday, settings.currency)}
           </Text>
         </Card>
 
@@ -123,6 +155,9 @@ export default function DashboardScreen() {
         <Card>
           <Text style={styles.metricLabel}>Low Stock</Text>
           <Text style={styles.metric}>{metrics.lowStockProducts}</Text>
+          <Text style={styles.metricNote}>
+            Threshold: {settings.lowStockThreshold}
+          </Text>
         </Card>
 
         <Card>
@@ -149,6 +184,11 @@ export default function DashboardScreen() {
             variant="secondary"
           />
           <AppButton
+            title="Store settings"
+            onPress={() => router.push("/settings" as Href)}
+            variant="secondary"
+          />
+          <AppButton
             title={signingOut ? "Signing out..." : "Sign out"}
             onPress={() => void handleSignOut()}
             variant="danger"
@@ -168,7 +208,7 @@ export default function DashboardScreen() {
                 </Text>
                 <Text style={styles.rowTitle}>{order.customerName}</Text>
                 <Text style={styles.rowMeta}>
-                  {formatCurrency(order.total)}
+                  {formatCurrency(order.total, settings.currency)}
                 </Text>
               </View>
               <StatusPill label={order.status} tone="info" />
@@ -208,11 +248,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.background,
   },
+  storeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  storeInfo: {
+    flex: 1,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+  },
+  logoFallback: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  logoInitial: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    fontWeight: "900",
+  },
   heading: { fontSize: 28, fontWeight: "900", color: colors.text },
-  subheading: { color: colors.muted, marginBottom: spacing.lg },
+  subheading: { color: colors.muted, marginTop: spacing.xs },
+  description: { color: colors.muted, marginTop: spacing.sm },
+  settingsWarning: {
+    color: colors.danger,
+    fontWeight: "700",
+    marginBottom: spacing.md,
+  },
   grid: { gap: spacing.sm },
   metricLabel: { color: colors.muted, marginBottom: spacing.sm },
   metric: { fontSize: 24, fontWeight: "900", color: colors.text },
+  metricNote: { color: colors.muted, fontSize: 12, marginTop: spacing.xs },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "900",
