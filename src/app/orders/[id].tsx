@@ -13,6 +13,7 @@ import { Card } from "../../components/Card";
 import { StatusPill } from "../../components/StatusPill";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
+import { useStoreSettings } from "../../contexts/StoreSettingsContext";
 import { Order } from "../../types/commerce";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { getNextOrderStatus } from "../../utils/inventory";
@@ -20,6 +21,7 @@ import { getNextOrderStatus } from "../../utils/inventory";
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
+  const { settings } = useStoreSettings();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,9 +45,7 @@ export default function OrderDetailScreen() {
         setErrorMessage(null);
         const data = await getOrderById(id, session.access_token);
 
-        if (active) {
-          setOrder(data);
-        }
+        if (active) setOrder(data);
       } catch (error) {
         if (active) {
           setErrorMessage(
@@ -53,9 +53,7 @@ export default function OrderDetailScreen() {
           );
         }
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
@@ -67,9 +65,7 @@ export default function OrderDetailScreen() {
   }, [id, session?.access_token]);
 
   async function changeStatus(nextStatus: Order["status"]) {
-    if (!order || !session?.access_token) {
-      return;
-    }
+    if (!order || !session?.access_token) return;
 
     try {
       setSaving(true);
@@ -93,9 +89,7 @@ export default function OrderDetailScreen() {
   }
 
   async function moveToNextStatus() {
-    if (!order) {
-      return;
-    }
+    if (!order) return;
 
     const nextStatus = getNextOrderStatus(order.status);
 
@@ -105,9 +99,7 @@ export default function OrderDetailScreen() {
   }
 
   async function refundOrder() {
-    if (!order || order.status === "refunded") {
-      return;
-    }
+    if (!order || order.status === "refunded") return;
 
     if (!confirmingRefund) {
       setConfirmingRefund(true);
@@ -137,21 +129,20 @@ export default function OrderDetailScreen() {
   }
 
   const nextStatus = getNextOrderStatus(order.status);
-  const canAdvance =
-    nextStatus !== order.status && order.status !== "refunded";
+  const canAdvance = nextStatus !== order.status && order.status !== "refunded";
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Card>
         <StatusPill label={order.status} tone="info" />
-        <Text style={styles.title}>
-          Order {order.orderNumber ?? order.id}
-        </Text>
+        <Text style={styles.title}>Order {order.orderNumber ?? order.id}</Text>
         <Text style={styles.customer}>{order.customerName}</Text>
         {order.customerEmail ? (
           <Text style={styles.customerEmail}>{order.customerEmail}</Text>
         ) : null}
-        <Text style={styles.total}>{formatCurrency(order.total)}</Text>
+        <Text style={styles.total}>
+          {formatCurrency(order.total, settings.currency)}
+        </Text>
       </Card>
 
       <Card>
@@ -164,7 +155,10 @@ export default function OrderDetailScreen() {
                 <Text style={styles.detail}>Quantity: {item.quantity}</Text>
               </View>
               <Text style={styles.itemPrice}>
-                {formatCurrency(item.unitPrice * item.quantity)}
+                {formatCurrency(
+                  item.unitPrice * item.quantity,
+                  settings.currency
+                )}
               </Text>
             </View>
           ))
@@ -191,9 +185,7 @@ export default function OrderDetailScreen() {
 
         <View style={styles.actions}>
           <AppButton
-            title={
-              canAdvance ? `Move to ${nextStatus}` : "Final Status Reached"
-            }
+            title={canAdvance ? `Move to ${nextStatus}` : "Final Status Reached"}
             onPress={() => void moveToNextStatus()}
             disabled={saving || !canAdvance}
           />
