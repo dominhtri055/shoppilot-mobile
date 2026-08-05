@@ -48,6 +48,10 @@ function RootNavigator() {
       <Stack.Protected guard={Boolean(session)}>
         <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
         <Stack.Screen name="settings" options={{ title: "Store Settings" }} />
+        <Stack.Screen
+          name="storefront"
+          options={{ title: "Storefront Publishing" }}
+        />
         <Stack.Screen name="products/index" options={{ title: "Products" }} />
         <Stack.Screen name="products/new" options={{ title: "Add Product" }} />
         <Stack.Screen
