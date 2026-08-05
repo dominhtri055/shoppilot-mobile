@@ -71,7 +71,7 @@ begin
     'My Store'
   );
 
-  insert into public.profiles (
+  insert into public.profiles as existing (
     id,
     email,
     full_name,
@@ -90,11 +90,11 @@ begin
     email = excluded.email,
     full_name = excluded.full_name,
     store_name = coalesce(
-      nullif(trim(public.profiles.store_name), ''),
+      nullif(trim(existing.store_name), ''),
       excluded.store_name
     ),
     business_email = coalesce(
-      nullif(trim(public.profiles.business_email), ''),
+      nullif(trim(existing.business_email), ''),
       excluded.business_email
     ),
     updated_at = timezone('utc', now());
