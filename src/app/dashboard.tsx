@@ -205,6 +205,11 @@ export default function DashboardScreen() {
             variant="secondary"
           />
           <AppButton
+            title={settings.isPublished ? "Storefront · Live" : "Storefront · Draft"}
+            onPress={() => router.push("/storefront" as Href)}
+            variant="secondary"
+          />
+          <AppButton
             title={signingOut ? "Signing out..." : "Sign out"}
             onPress={() => void handleSignOut()}
             variant="danger"
