@@ -1,5 +1,11 @@
-import { router, type Href, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { Image } from "expo-image";
+import {
+  router,
+  type Href,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -19,10 +25,12 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusPill } from "../../components/StatusPill";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
+import {
+  deleteProductImage,
+  getProductImageUrl,
+} from "../../lib/supabaseStorage";
 import { Product } from "../../types/commerce";
 import { formatCurrency } from "../../utils/formatCurrency";
-import { Image } from "expo-image";
-import { getProductImageUrl } from "../../lib/supabaseStorage";
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,47 +42,50 @@ export default function ProductDetailScreen() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-    async function loadProduct() {
-      if (!id || !session?.access_token) {
-        if (active) {
-          setErrorMessage("Product or session information is missing.");
-          setLoading(false);
+      async function loadProduct() {
+        if (!id || !session?.access_token) {
+          if (active) {
+            setErrorMessage("Product or session information is missing.");
+            setLoading(false);
+          }
+          return;
         }
-        return;
+
+        try {
+          setLoading(true);
+          setErrorMessage(null);
+          const data = await getProductById(id, session.access_token);
+
+          if (active) {
+            setProduct(data);
+            setConfirmingDelete(false);
+          }
+        } catch (error) {
+          if (active) {
+            setErrorMessage(
+              error instanceof Error
+                ? error.message
+                : "Product could not be loaded.",
+            );
+          }
+        } finally {
+          if (active) {
+            setLoading(false);
+          }
+        }
       }
 
-      try {
-        setLoading(true);
-        setErrorMessage(null);
-        const data = await getProductById(id, session.access_token);
+      void loadProduct();
 
-        if (active) {
-          setProduct(data);
-        }
-      } catch (error) {
-        if (active) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Product could not be loaded.",
-          );
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadProduct();
-
-    return () => {
-      active = false;
-    };
-  }, [id, session?.access_token]);
+      return () => {
+        active = false;
+      };
+    }, [id, session?.access_token]),
+  );
 
   async function handleInventoryChange(amount: number) {
     if (!product || !session?.access_token) return;
@@ -142,6 +153,15 @@ export default function ProductDetailScreen() {
       setDeleting(true);
       setErrorMessage(null);
       await deleteProduct(product.id, session.access_token);
+
+      if (product.imagePath) {
+        try {
+          await deleteProductImage(product.imagePath, session.access_token);
+        } catch {
+          // The product is already deleted; an orphaned image can be cleaned later.
+        }
+      }
+
       router.replace("/products" as Href);
     } catch (error) {
       setErrorMessage(
@@ -184,15 +204,15 @@ export default function ProductDetailScreen() {
 
       {product.imagePath ? (
         <Image
-          source={{
-            uri: getProductImageUrl(product.imagePath),
-          }}
+          source={{ uri: getProductImageUrl(product.imagePath) }}
           style={styles.productImage}
           contentFit="cover"
+          transition={150}
         />
       ) : (
         <Text style={styles.noImageText}>No product image</Text>
       )}
+
       <Card>
         <StatusPill
           label={product.status}
@@ -201,6 +221,17 @@ export default function ProductDetailScreen() {
         <Text style={styles.title}>{product.title}</Text>
         <Text style={styles.vendor}>{product.vendor}</Text>
         <Text style={styles.price}>{formatCurrency(product.price)}</Text>
+
+        <View style={styles.editAction}>
+          <AppButton
+            title="Edit product"
+            onPress={() =>
+              router.push(`/products/${product.id}/edit` as Href)
+            }
+            variant="secondary"
+            disabled={saving || deleting}
+          />
+        </View>
       </Card>
 
       <Card>
@@ -278,6 +309,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
     padding: spacing.lg,
   },
   center: {
@@ -313,6 +347,9 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: spacing.md,
   },
+  editAction: {
+    marginTop: spacing.lg,
+  },
   sectionTitle: {
     color: colors.text,
     fontSize: 18,
@@ -342,18 +379,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 320,
     borderRadius: 16,
-    marginBottom: spacing.md,
-  },
-  productImagePlaceholder: {
-    width: "100%",
-    height: 120,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.border,
-    backgroundColor: colors.background,
     marginBottom: spacing.md,
   },
   noImageText: {
