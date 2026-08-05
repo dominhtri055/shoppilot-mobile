@@ -25,6 +25,15 @@ export type CreateProductInput = {
   tags?: string[];
 };
 
+export type UpdateProductInput = {
+  title: string;
+  vendor: string;
+  price: number;
+  inventory: number;
+  imagePath: string | null;
+  tags: string[];
+};
+
 function toProduct(row: ProductRow): Product {
   return {
     id: row.id,
@@ -101,6 +110,25 @@ export async function createProduct(
   return toProduct(product);
 }
 
+export async function updateProductDetails(
+  id: string,
+  input: UpdateProductInput,
+  accessToken: string,
+): Promise<Product> {
+  return updateProduct(
+    id,
+    {
+      title: input.title.trim(),
+      vendor: input.vendor.trim(),
+      price: input.price,
+      inventory: Math.max(0, input.inventory),
+      tags: input.tags,
+      image_path: input.imagePath,
+    },
+    accessToken,
+  );
+}
+
 export async function updateProductInventory(
   id: string,
   inventory: number,
@@ -119,7 +147,18 @@ export async function updateProductStatus(
 
 async function updateProduct(
   id: string,
-  changes: Partial<Pick<ProductRow, "inventory" | "status">>,
+  changes: Partial<
+    Pick<
+      ProductRow,
+      | "title"
+      | "vendor"
+      | "price"
+      | "inventory"
+      | "status"
+      | "tags"
+      | "image_path"
+    >
+  >,
   accessToken: string,
 ): Promise<Product> {
   const rows = await supabaseRestRequest<ProductRow[]>(
