@@ -59,6 +59,10 @@ function RootNavigator() {
           name="products/[id]"
           options={{ title: "Product Detail" }}
         />
+        <Stack.Screen
+          name="products/[id]/edit"
+          options={{ title: "Edit Product" }}
+        />
         <Stack.Screen name="orders/index" options={{ title: "Orders" }} />
         <Stack.Screen name="orders/[id]" options={{ title: "Order Detail" }} />
         <Stack.Screen name="insights" options={{ title: "Insights" }} />
