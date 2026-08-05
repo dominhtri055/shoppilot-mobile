@@ -25,6 +25,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusPill } from "../../components/StatusPill";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
+import { useStoreSettings } from "../../contexts/StoreSettingsContext";
 import {
   deleteProductImage,
   getProductImageUrl,
@@ -35,6 +36,7 @@ import { formatCurrency } from "../../utils/formatCurrency";
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
+  const { settings } = useStoreSettings();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,7 +71,7 @@ export default function ProductDetailScreen() {
             setErrorMessage(
               error instanceof Error
                 ? error.message
-                : "Product could not be loaded.",
+                : "Product could not be loaded."
             );
           }
         } finally {
@@ -84,7 +86,7 @@ export default function ProductDetailScreen() {
       return () => {
         active = false;
       };
-    }, [id, session?.access_token]),
+    }, [id, session?.access_token])
   );
 
   async function handleInventoryChange(amount: number) {
@@ -92,9 +94,7 @@ export default function ProductDetailScreen() {
 
     const nextInventory = product.inventory + amount;
 
-    if (nextInventory < 0) {
-      return;
-    }
+    if (nextInventory < 0) return;
 
     try {
       setSaving(true);
@@ -102,14 +102,14 @@ export default function ProductDetailScreen() {
       const updated = await updateProductInventory(
         product.id,
         nextInventory,
-        session.access_token,
+        session.access_token
       );
       setProduct(updated);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Inventory could not be updated.",
+          : "Inventory could not be updated."
       );
     } finally {
       setSaving(false);
@@ -127,14 +127,14 @@ export default function ProductDetailScreen() {
       const updated = await updateProductStatus(
         product.id,
         nextStatus,
-        session.access_token,
+        session.access_token
       );
       setProduct(updated);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Product status could not be updated.",
+          : "Product status could not be updated."
       );
     } finally {
       setSaving(false);
@@ -167,7 +167,7 @@ export default function ProductDetailScreen() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Product could not be deleted.",
+          : "Product could not be deleted."
       );
       setConfirmingDelete(false);
     } finally {
@@ -220,14 +220,14 @@ export default function ProductDetailScreen() {
         />
         <Text style={styles.title}>{product.title}</Text>
         <Text style={styles.vendor}>{product.vendor}</Text>
-        <Text style={styles.price}>{formatCurrency(product.price)}</Text>
+        <Text style={styles.price}>
+          {formatCurrency(product.price, settings.currency)}
+        </Text>
 
         <View style={styles.editAction}>
           <AppButton
             title="Edit product"
-            onPress={() =>
-              router.push(`/products/${product.id}/edit` as Href)
-            }
+            onPress={() => router.push(`/products/${product.id}/edit` as Href)}
             variant="secondary"
             disabled={saving || deleting}
           />
