@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { getAnalyticsReport } from "../api/analyticsApi";
 import { getOrders } from "../api/orderApi";
 import { getProducts } from "../api/productApi";
 import { AppButton } from "../components/AppButton";
@@ -21,6 +22,11 @@ import { getStoreLogoUrl } from "../lib/storeLogoStorage";
 import { DashboardMetrics, Order, Product } from "../types/commerce";
 import { formatCurrency } from "../utils/formatCurrency";
 import { isLowStock } from "../utils/inventory";
+
+type DashboardViewMetrics = DashboardMetrics & {
+  sessions7d: number;
+  completedCheckouts7d: number;
+};
 
 function isToday(value: string) {
   const date = new Date(value);
@@ -36,7 +42,7 @@ function isToday(value: string) {
 export default function DashboardScreen() {
   const { session, user, signOut } = useAuth();
   const { settings, errorMessage: settingsError } = useStoreSettings();
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [metrics, setMetrics] = useState<DashboardViewMetrics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,29 +56,32 @@ export default function DashboardScreen() {
       }
 
       try {
-        const [ordersData, productsData] = await Promise.all([
+        const [ordersData, productsData, analyticsData] = await Promise.all([
           getOrders(session.access_token),
           getProducts(session.access_token),
+          getAnalyticsReport(session.access_token, 7),
         ]);
 
         const lowStockProducts = productsData.filter((product) =>
-          isLowStock(product, settings.lowStockThreshold)
+          isLowStock(product, settings.lowStockThreshold),
         );
         const revenueToday = ordersData
           .filter(
-            (order) => isToday(order.createdAt) && order.status !== "refunded"
+            (order) => isToday(order.createdAt) && order.status !== "refunded",
           )
           .reduce((total, order) => total + order.total, 0);
         const openOrders = ordersData.filter(
           (order) =>
-            order.status !== "delivered" && order.status !== "refunded"
+            order.status !== "delivered" && order.status !== "refunded",
         ).length;
 
         setMetrics({
           revenueToday,
           openOrders,
           lowStockProducts: lowStockProducts.length,
-          conversionRate: 3.8,
+          conversionRate: analyticsData.summary.conversionRate,
+          sessions7d: analyticsData.summary.sessions,
+          completedCheckouts7d: analyticsData.summary.checkoutCompleted,
         });
         setRecentOrders(ordersData.slice(0, 3));
         setLowStock(lowStockProducts);
@@ -161,8 +170,15 @@ export default function DashboardScreen() {
         </Card>
 
         <Card>
-          <Text style={styles.metricLabel}>Conversion</Text>
-          <Text style={styles.metric}>{metrics.conversionRate}%</Text>
+          <Text style={styles.metricLabel}>Conversion · 7 days</Text>
+          <Text style={styles.metric}>
+            {metrics.conversionRate.toFixed(1)}%
+          </Text>
+          <Text style={styles.metricNote}>
+            {metrics.completedCheckouts7d} completed checkout
+            {metrics.completedCheckouts7d === 1 ? "" : "s"} from{" "}
+            {metrics.sessions7d} session{metrics.sessions7d === 1 ? "" : "s"}
+          </Text>
         </Card>
       </View>
 
