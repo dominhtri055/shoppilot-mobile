@@ -1,5 +1,5 @@
-import { router, type Href } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { router, type Href, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -8,33 +8,67 @@ import {
   Text,
   View,
 } from "react-native";
-import { getOrders } from "../../api/merchantApi";
+import { getOrders } from "../../api/orderApi";
+import { AppButton } from "../../components/AppButton";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusPill } from "../../components/StatusPill";
 import { colors, spacing } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
 import { Order, OrderStatus } from "../../types/commerce";
 import { formatCurrency } from "../../utils/formatCurrency";
 
 type Filter = "all" | OrderStatus;
 
 export default function OrdersScreen() {
+  const { session } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadOrders() {
-      const data = await getOrders();
-      setOrders(data);
-      setLoading(false);
-    }
+  const loadOrders = useCallback(
+    async (isRefresh = false) => {
+      if (!session?.access_token) {
+        setErrorMessage("Your session has expired. Please sign in again.");
+        setLoading(false);
+        return;
+      }
 
-    loadOrders();
-  }, []);
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        setErrorMessage(null);
+        const data = await getOrders(session.access_token);
+        setOrders(data);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : "Orders could not be loaded."
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [session?.access_token]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadOrders();
+    }, [loadOrders])
+  );
 
   const filteredOrders = useMemo(() => {
-    if (filter === "all") return orders;
+    if (filter === "all") {
+      return orders;
+    }
+
     return orders.filter((order) => order.status === filter);
   }, [orders, filter]);
 
@@ -42,6 +76,15 @@ export default function OrdersScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (errorMessage && orders.length === 0) {
+    return (
+      <View style={styles.errorContainer}>
+        <EmptyState title="Orders unavailable" message={errorMessage} />
+        <AppButton title="Try again" onPress={() => void loadOrders()} />
       </View>
     );
   }
@@ -57,6 +100,7 @@ export default function OrdersScreen() {
             "packed",
             "shipped",
             "delivered",
+            "refunded",
           ] as Filter[]
         ).map((item) => (
           <Pressable
@@ -76,21 +120,32 @@ export default function OrdersScreen() {
         ))}
       </View>
 
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+
       <FlatList
         data={filteredOrders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        refreshing={refreshing}
+        onRefresh={() => void loadOrders(true)}
         ListEmptyComponent={
           <EmptyState
             title="No orders found"
-            message="Try changing the selected fulfillment filter."
+            message={
+              orders.length === 0
+                ? "No customer orders have been created yet."
+                : "Try changing the selected fulfillment filter."
+            }
           />
         }
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push(`/orders/${item.id}` as Href)}>
             <Card>
               <View style={styles.row}>
-                <View>
+                <View style={styles.orderInfo}>
+                  <Text style={styles.orderNumber}>
+                    {item.orderNumber ?? item.id}
+                  </Text>
                   <Text style={styles.title}>{item.customerName}</Text>
                   <Text style={styles.meta}>
                     {item.itemCount} items · {formatCurrency(item.total)}
@@ -121,6 +176,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.background,
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.lg,
+    backgroundColor: colors.background,
+  },
   filters: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -147,6 +208,11 @@ const styles = StyleSheet.create({
   activeFilterText: {
     color: "#FFFFFF",
   },
+  error: {
+    color: colors.danger,
+    fontWeight: "700",
+    marginBottom: spacing.md,
+  },
   list: {
     paddingBottom: spacing.xl,
   },
@@ -154,6 +220,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     gap: spacing.md,
+  },
+  orderInfo: {
+    flex: 1,
+  },
+  orderNumber: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
+    marginBottom: spacing.xs,
   },
   title: {
     color: colors.text,
