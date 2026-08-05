@@ -8,12 +8,10 @@ import {
   AuthPrimaryButton,
   authStyles,
 } from "../components/AuthLayout";
-import { SocialAuthButtons } from "../components/SocialAuthButtons";
 import { useAuth } from "../contexts/AuthContext";
-import type { SocialProvider } from "../lib/socialAuth";
 
 export default function LoginScreen() {
-  const { signIn, signInWithProvider, signUp } = useAuth();
+  const { signIn, signUp } = useAuth();
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -27,11 +25,6 @@ export default function LoginScreen() {
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState("");
-
-  const [socialLoading, setSocialLoading] = useState<SocialProvider | null>(
-    null
-  );
-  const [socialError, setSocialError] = useState("");
 
   async function handleLogin() {
     setLoginError("");
@@ -51,25 +44,6 @@ export default function LoginScreen() {
       );
     } finally {
       setLoginLoading(false);
-    }
-  }
-
-  async function handleSocialLogin(provider: SocialProvider) {
-    setSocialError("");
-
-    try {
-      setSocialLoading(provider);
-      const signedIn = await signInWithProvider(provider);
-
-      if (signedIn) {
-        router.replace("/dashboard" as Href);
-      }
-    } catch (error) {
-      setSocialError(
-        error instanceof Error ? error.message : "Social login failed."
-      );
-    } finally {
-      setSocialLoading(null);
     }
   }
 
@@ -126,26 +100,8 @@ export default function LoginScreen() {
     );
   }
 
-  const authBusy =
-    loginLoading || registerLoading || socialLoading !== null;
-
-  const socialButtons = (
-    <>
-      <SocialAuthButtons
-        loadingProvider={socialLoading}
-        disabled={authBusy}
-        onPress={(provider) => void handleSocialLogin(provider)}
-      />
-      {socialError ? (
-        <AuthMessage type="error">{socialError}</AuthMessage>
-      ) : null}
-    </>
-  );
-
   const loginForm = (
     <>
-      {socialButtons}
-
       <AuthField
         label="Email"
         value={loginEmail}
@@ -154,7 +110,6 @@ export default function LoginScreen() {
         autoComplete="email"
         keyboardType="email-address"
         placeholder="account@example.com"
-        editable={!authBusy}
       />
 
       <AuthField
@@ -165,7 +120,6 @@ export default function LoginScreen() {
         autoComplete="password"
         secureTextEntry
         placeholder="Enter your password"
-        editable={!authBusy}
         onSubmitEditing={() => void handleLogin()}
       />
 
@@ -180,22 +134,19 @@ export default function LoginScreen() {
       <AuthPrimaryButton
         title={loginLoading ? "Signing in..." : "Sign in"}
         onPress={() => void handleLogin()}
-        disabled={authBusy}
+        disabled={loginLoading || registerLoading}
       />
     </>
   );
 
   const registerForm = (
     <>
-      {socialButtons}
-
       <AuthField
         label="Full name"
         value={fullName}
         onChangeText={setFullName}
         autoComplete="name"
         placeholder="Your name"
-        editable={!authBusy}
       />
 
       <AuthField
@@ -206,7 +157,6 @@ export default function LoginScreen() {
         autoComplete="email"
         keyboardType="email-address"
         placeholder="account@example.com"
-        editable={!authBusy}
       />
 
       <AuthField
@@ -217,7 +167,6 @@ export default function LoginScreen() {
         autoComplete="new-password"
         secureTextEntry
         placeholder="At least 6 characters"
-        editable={!authBusy}
       />
 
       <AuthField
@@ -228,7 +177,6 @@ export default function LoginScreen() {
         autoComplete="new-password"
         secureTextEntry
         placeholder="Re-enter your password"
-        editable={!authBusy}
         onSubmitEditing={() => void handleRegister()}
       />
 
@@ -242,7 +190,7 @@ export default function LoginScreen() {
       <AuthPrimaryButton
         title={registerLoading ? "Creating account..." : "Sign up"}
         onPress={() => void handleRegister()}
-        disabled={authBusy}
+        disabled={registerLoading || loginLoading}
       />
     </>
   );
