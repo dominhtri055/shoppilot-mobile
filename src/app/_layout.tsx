@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { colors } from "../constants/theme";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
+import { StoreSettingsProvider } from "../contexts/StoreSettingsContext";
 
 function RootNavigator() {
   const { session, loading } = useAuth();
@@ -36,23 +37,17 @@ function RootNavigator() {
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen
           name="forgot-password"
-          options={{
-            title: "Forgot Password",
-            headerShown: false,
-          }}
+          options={{ title: "Forgot Password", headerShown: false }}
         />
-
         <Stack.Screen
           name="update-password"
-          options={{
-            title: "Update Password",
-            headerShown: false,
-          }}
+          options={{ title: "Update Password", headerShown: false }}
         />
       </Stack.Protected>
 
       <Stack.Protected guard={Boolean(session)}>
         <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
+        <Stack.Screen name="settings" options={{ title: "Store Settings" }} />
         <Stack.Screen name="products/index" options={{ title: "Products" }} />
         <Stack.Screen name="products/new" options={{ title: "Add Product" }} />
         <Stack.Screen
@@ -74,7 +69,9 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNavigator />
+      <StoreSettingsProvider>
+        <RootNavigator />
+      </StoreSettingsProvider>
     </AuthProvider>
   );
 }
