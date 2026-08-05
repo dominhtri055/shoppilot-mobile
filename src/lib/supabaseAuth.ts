@@ -293,3 +293,34 @@ export async function signOutSession(accessToken?: string) {
 
   await clearStoredSession();
 }
+
+export async function requestPasswordReset(
+  email: string,
+  redirectTo: string
+): Promise<void> {
+  await authRequest<Record<string, never>>(
+    `/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+      }),
+    }
+  );
+}
+
+export async function updatePasswordWithRecoveryToken(
+  accessToken: string,
+  newPassword: string
+): Promise<AuthUser> {
+  return authRequest<AuthUser>(
+    "/user",
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        password: newPassword,
+      }),
+    },
+    accessToken
+  );
+}

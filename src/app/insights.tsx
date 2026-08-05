@@ -6,7 +6,9 @@ import {
   Text,
   View,
 } from "react-native";
-import { getProducts, getRevenuePoints } from "../api/merchantApi";
+import { getRevenuePoints } from "../api/merchantApi";
+import { getProducts } from "../api/productApi";
+import { useAuth } from "../contexts/AuthContext";
 import { Card } from "../components/Card";
 import { StatusPill } from "../components/StatusPill";
 import { colors, spacing } from "../constants/theme";
@@ -15,24 +17,35 @@ import { formatCurrency } from "../utils/formatCurrency";
 import { isLowStock } from "../utils/inventory";
 
 export default function InsightsScreen() {
+  const { session } = useAuth();
   const [revenue, setRevenue] = useState<RevenuePoint[]>([]);
   const [lowStock, setLowStock] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadInsights() {
+useEffect(() => {
+  async function loadInsights() {
+    if (!session?.access_token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
       const [revenueData, productsData] = await Promise.all([
         getRevenuePoints(),
-        getProducts(),
+        getProducts(session.access_token),
       ]);
 
       setRevenue(revenueData);
       setLowStock(productsData.filter(isLowStock));
+    } catch (error) {
+      console.error("Unable to load insights:", error);
+    } finally {
       setLoading(false);
     }
+  }
 
-    loadInsights();
-  }, []);
+  void loadInsights();
+}, [session?.access_token]);
 
   if (loading) {
     return (
@@ -75,7 +88,9 @@ export default function InsightsScreen() {
           <View key={product.id} style={styles.row}>
             <View>
               <Text style={styles.product}>{product.title}</Text>
-              <Text style={styles.muted}>{product.inventory} units remaining</Text>
+              <Text style={styles.muted}>
+                {product.inventory} units remaining
+              </Text>
             </View>
             <StatusPill label="Action needed" tone="warning" />
           </View>

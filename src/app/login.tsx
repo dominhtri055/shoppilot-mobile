@@ -1,6 +1,6 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import {
   AuthField,
   AuthLayout,
@@ -93,12 +93,9 @@ export default function LoginScreen() {
     }
   }
 
-  function showPasswordResetInfo() {
-    Alert.alert(
-      "Password reset",
-      "Password reset will be added in the next authentication update."
-    );
-  }
+function showPasswordResetInfo() {
+  router.push("/forgot-password" as Href);
+}
 
   const loginForm = (
     <>

@@ -33,28 +33,34 @@ function RootNavigator() {
       <Stack.Protected guard={!session}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen
-          name="auth/callback"
-          options={{ headerShown: false }}
+          name="forgot-password"
+          options={{
+            title: "Forgot Password",
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="update-password"
+          options={{
+            title: "Update Password",
+            headerShown: false,
+          }}
         />
       </Stack.Protected>
 
       <Stack.Protected guard={Boolean(session)}>
         <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
         <Stack.Screen name="products/index" options={{ title: "Products" }} />
-        <Stack.Screen
-          name="products/new"
-          options={{ title: "Add Product" }}
-        />
+        <Stack.Screen name="products/new" options={{ title: "Add Product" }} />
         <Stack.Screen
           name="products/[id]"
           options={{ title: "Product Detail" }}
         />
         <Stack.Screen name="orders/index" options={{ title: "Orders" }} />
-        <Stack.Screen
-          name="orders/[id]"
-          options={{ title: "Order Detail" }}
-        />
+        <Stack.Screen name="orders/[id]" options={{ title: "Order Detail" }} />
         <Stack.Screen name="insights" options={{ title: "Insights" }} />
       </Stack.Protected>
     </Stack>
