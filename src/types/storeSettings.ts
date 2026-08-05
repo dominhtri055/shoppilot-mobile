@@ -10,6 +10,8 @@ export type StoreSettings = {
   currency: StoreCurrency;
   lowStockThreshold: number;
   logoPath: string | null;
+  storeSlug: string;
+  isPublished: boolean;
   updatedAt: string;
 };
 
@@ -20,7 +22,20 @@ export type UpdateStoreSettingsInput = {
   currency: StoreCurrency;
   lowStockThreshold: number;
   logoPath: string | null;
+  storeSlug?: string;
+  isPublished?: boolean;
 };
+
+function createFallbackSlug(email: string, fullName: string) {
+  const source = fullName.trim() || email.split("@")[0]?.trim() || "store";
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+  return normalized.length >= 3 ? normalized : "store";
+}
 
 export function createDefaultStoreSettings(
   id = "",
@@ -37,6 +52,8 @@ export function createDefaultStoreSettings(
     currency: "CAD",
     lowStockThreshold: 5,
     logoPath: null,
+    storeSlug: createFallbackSlug(email, fullName),
+    isPublished: false,
     updatedAt: "",
   };
 }
