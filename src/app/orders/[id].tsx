@@ -2,7 +2,6 @@ import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,13 +23,18 @@ export default function OrderDetailScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmingRefund, setConfirmingRefund] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     async function loadOrder() {
       if (!id || !session?.access_token) {
-        setErrorMessage("The order or session is unavailable.");
-        setLoading(false);
+        if (active) {
+          setErrorMessage("The order or session is unavailable.");
+          setLoading(false);
+        }
         return;
       }
 
@@ -38,17 +42,28 @@ export default function OrderDetailScreen() {
         setLoading(true);
         setErrorMessage(null);
         const data = await getOrderById(id, session.access_token);
-        setOrder(data);
+
+        if (active) {
+          setOrder(data);
+        }
       } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : "Order could not be loaded."
-        );
+        if (active) {
+          setErrorMessage(
+            error instanceof Error ? error.message : "Order could not be loaded."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     void loadOrder();
+
+    return () => {
+      active = false;
+    };
   }, [id, session?.access_token]);
 
   async function changeStatus(nextStatus: Order["status"]) {
@@ -65,6 +80,7 @@ export default function OrderDetailScreen() {
         session.access_token
       );
       setOrder(updated);
+      setConfirmingRefund(false);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -83,31 +99,22 @@ export default function OrderDetailScreen() {
 
     const nextStatus = getNextOrderStatus(order.status);
 
-    if (nextStatus === order.status) {
-      Alert.alert("No next step", "This order is already at its final status.");
-      return;
+    if (nextStatus !== order.status) {
+      await changeStatus(nextStatus);
     }
-
-    await changeStatus(nextStatus);
   }
 
-  function refundOrder() {
+  async function refundOrder() {
     if (!order || order.status === "refunded") {
       return;
     }
 
-    Alert.alert(
-      "Refund order",
-      `Refund ${order.orderNumber ?? order.id}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Refund",
-          style: "destructive",
-          onPress: () => void changeStatus("refunded"),
-        },
-      ]
-    );
+    if (!confirmingRefund) {
+      setConfirmingRefund(true);
+      return;
+    }
+
+    await changeStatus("refunded");
   }
 
   if (loading) {
@@ -190,9 +197,20 @@ export default function OrderDetailScreen() {
             onPress={() => void moveToNextStatus()}
             disabled={saving || !canAdvance}
           />
+          <Text style={styles.description}>
+            {confirmingRefund
+              ? "Press confirm refund to permanently mark this order as refunded."
+              : "Refunding removes this order from revenue and open-order totals."}
+          </Text>
           <AppButton
-            title={saving ? "Updating..." : "Refund Order"}
-            onPress={refundOrder}
+            title={
+              saving
+                ? "Updating..."
+                : confirmingRefund
+                  ? "Confirm refund"
+                  : "Refund Order"
+            }
+            onPress={() => void refundOrder()}
             variant="danger"
             disabled={saving || order.status === "refunded"}
           />
