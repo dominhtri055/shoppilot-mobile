@@ -16,6 +16,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { StatusPill } from "../../components/StatusPill";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
+import { useStoreSettings } from "../../contexts/StoreSettingsContext";
 import { Product, ProductStatus } from "../../types/commerce";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { isLowStock } from "../../utils/inventory";
@@ -24,6 +25,7 @@ type Filter = "all" | ProductStatus | "low-stock";
 
 export default function ProductsScreen() {
   const { session } = useAuth();
+  const { settings } = useStoreSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -51,7 +53,9 @@ export default function ProductsScreen() {
         setProducts(data);
       } catch (error) {
         setErrorMessage(
-          error instanceof Error ? error.message : "Products could not be loaded."
+          error instanceof Error
+            ? error.message
+            : "Products could not be loaded."
         );
       } finally {
         setLoading(false);
@@ -78,11 +82,12 @@ export default function ProductsScreen() {
       const matchesFilter =
         filter === "all" ||
         product.status === filter ||
-        (filter === "low-stock" && isLowStock(product));
+        (filter === "low-stock" &&
+          isLowStock(product, settings.lowStockThreshold));
 
       return matchesQuery && matchesFilter;
     });
-  }, [products, query, filter]);
+  }, [filter, products, query, settings.lowStockThreshold]);
 
   if (loading) {
     return (
@@ -136,6 +141,10 @@ export default function ProductsScreen() {
         ))}
       </View>
 
+      <Text style={styles.thresholdNote}>
+        Low stock means {settings.lowStockThreshold} units or fewer.
+      </Text>
+
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
       <FlatList
@@ -163,7 +172,9 @@ export default function ProductsScreen() {
                 <View style={styles.productInfo}>
                   <Text style={styles.title}>{item.title}</Text>
                   <Text style={styles.vendor}>{item.vendor}</Text>
-                  <Text style={styles.price}>{formatCurrency(item.price)}</Text>
+                  <Text style={styles.price}>
+                    {formatCurrency(item.price, settings.currency)}
+                  </Text>
                 </View>
                 <View style={styles.right}>
                   <StatusPill
@@ -231,6 +242,10 @@ const styles = StyleSheet.create({
   },
   activeFilterText: {
     color: "#FFFFFF",
+  },
+  thresholdNote: {
+    color: colors.muted,
+    fontSize: 12,
   },
   error: {
     color: colors.danger,
