@@ -1,21 +1,26 @@
 import { Pressable, StyleSheet, Text } from "react-native";
 import { colors, radius, spacing } from "../constants/theme";
 
-type Props ={
-    title: string,
-    onPress: () => void;
-    variant?: "primary" | "secondary" | "danger";
-    disabled?: boolean;
-}
+type Props = {
+  title: string;
+  onPress: () => void;
+  variant?: "primary" | "secondary" | "danger";
+  disabled?: boolean;
+  accessibilityLabel?: string;
+};
 
 export function AppButton({
-    title,
-    onPress,
-    variant = "primary",
-    disabled = false,
-}: Props){
-    return(
-            <Pressable
+  title,
+  onPress,
+  variant = "primary",
+  disabled = false,
+  accessibilityLabel,
+}: Props) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
       style={[
@@ -26,10 +31,7 @@ export function AppButton({
       ]}
     >
       <Text
-        style={[
-          styles.text,
-          variant === "secondary" && styles.secondaryText,
-        ]}
+        style={[styles.text, variant === "secondary" && styles.secondaryText]}
       >
         {title}
       </Text>

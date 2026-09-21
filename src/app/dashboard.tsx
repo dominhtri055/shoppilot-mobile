@@ -186,6 +186,10 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actions}>
           <AppButton
+            title="Design website"
+            onPress={() => router.push("/design" as Href)}
+          />
+          <AppButton
             title="Products"
             onPress={() => router.push("/products" as Href)}
           />
