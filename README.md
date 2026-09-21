@@ -304,3 +304,8 @@ ShopPilot is a merchant management application. A future customer storefront can
 
 - GitHub: `dominhtri055`
 - LinkedIn: `trido2908`
+
+
+## Website designer
+
+Open **Dashboard → Design website** to customize and preview a merchant-owned storefront using the current session. Drafts and published designs are stored separately in the shared Supabase backend. See [WEBSITE_DESIGN_SETUP.md](WEBSITE_DESIGN_SETUP.md) for the required migration and paired storefront deployment.

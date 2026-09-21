@@ -101,6 +101,18 @@ export default function StorefrontPublishingScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Card>
+          <Text style={styles.title}>Your website</Text>
+          <Text style={styles.subtitle}>
+            Choose a style, edit your content and arrange your page with a live
+            preview.
+          </Text>
+          <AppButton
+            title="Design website"
+            disabled={saving}
+            onPress={() => router.push("/design")}
+          />
+        </Card>
+        <Card>
           <Text style={styles.title}>Storefront publishing</Text>
           <Text style={styles.subtitle}>
             Control the public URL and whether customers can access this store.
@@ -171,7 +183,9 @@ export default function StorefrontPublishingScreen() {
             </Text>
           </View>
 
-          {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+          {errorMessage ? (
+            <Text style={styles.error}>{errorMessage}</Text>
+          ) : null}
 
           <View style={styles.actions}>
             <AppButton

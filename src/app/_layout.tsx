@@ -48,6 +48,7 @@ function RootNavigator() {
       <Stack.Protected guard={Boolean(session)}>
         <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
         <Stack.Screen name="settings" options={{ title: "Store Settings" }} />
+        <Stack.Screen name="design" options={{ title: "Website Designer" }} />
         <Stack.Screen
           name="storefront"
           options={{ title: "Storefront Publishing" }}
