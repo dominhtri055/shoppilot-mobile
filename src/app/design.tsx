@@ -17,6 +17,7 @@ import {
 import { getProducts } from "../api/productApi";
 import { getStoreDesign, saveStoreDesign } from "../api/storeThemeApi";
 import { AppButton } from "../components/AppButton";
+import { SectionSorter } from "../components/SectionSorter";
 import { WebsitePreview } from "../components/WebsitePreview";
 import { colors } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
@@ -32,11 +33,6 @@ import {
 } from "../types/storeTheme";
 
 type Panel = "Design" | "Content" | "Layout";
-const labels = {
-  hero: "Hero banner",
-  products: "Collection",
-  about: "Our story",
-};
 
 function confirmChange(message: string, action: () => void) {
   if (Platform.OS === "web") {
@@ -103,6 +99,7 @@ export default function WebsiteDesignScreen() {
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [draggingSection, setDraggingSection] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [retry, setRetry] = useState(0);
@@ -212,14 +209,6 @@ export default function WebsiteDesignScreen() {
       setBusy(false);
     }
   }
-  function move(index: number, direction: number) {
-    const sections = [...theme.sections];
-    [sections[index], sections[index + direction]] = [
-      sections[index + direction],
-      sections[index],
-    ];
-    update("sections", sections);
-  }
   function textField(
     key: "announcement" | "heading" | "description" | "banner" | "about",
     label: string,
@@ -275,6 +264,7 @@ export default function WebsiteDesignScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      scrollEnabled={!draggingSection}
     >
       <View style={styles.top}>
         <View style={styles.titleBlock}>
@@ -288,12 +278,12 @@ export default function WebsiteDesignScreen() {
             title={busy ? "Saving…" : "Save draft"}
             variant="secondary"
             onPress={() => void save(false)}
-            disabled={busy}
+            disabled={busy || draggingSection}
           />
           <AppButton
             title="Publish design"
             onPress={() => void save(true)}
-            disabled={busy}
+            disabled={busy || draggingSection}
           />
         </View>
       </View>
@@ -438,27 +428,17 @@ export default function WebsiteDesignScreen() {
                 onChange={(v) => update("columns", v)}
                 disabled={busy}
               />
-              {theme.sections.map((section, i) => (
-                <View style={styles.sectionRow} key={section}>
-                  <Text style={[styles.label, styles.flex]}>
-                    {labels[section]}
-                  </Text>
-                  <AppButton
-                    title="↑"
-                    accessibilityLabel={`Move ${labels[section]} up`}
-                    onPress={() => move(i, -1)}
-                    variant="secondary"
-                    disabled={busy || i === 0}
-                  />
-                  <AppButton
-                    title="↓"
-                    accessibilityLabel={`Move ${labels[section]} down`}
-                    onPress={() => move(i, 1)}
-                    variant="secondary"
-                    disabled={busy || i === theme.sections.length - 1}
-                  />
-                </View>
-              ))}
+              <SectionSorter
+                sections={theme.sections}
+                hiddenSections={theme.sections.filter(
+                  (id) =>
+                    (id === "hero" && !theme.showHero) ||
+                    (id === "about" && !theme.showAbout),
+                )}
+                disabled={busy}
+                onChange={(sections) => update("sections", sections)}
+                onDragStateChange={setDraggingSection}
+              />
               {(["showHero", "showAbout", "showInventory"] as const).map(
                 (key, i) => (
                   <View key={key} style={styles.sectionRow}>

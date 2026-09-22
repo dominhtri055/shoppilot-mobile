@@ -2,6 +2,8 @@
 
 Merchants can now open **Dashboard → Design website** (or **Storefront → Design website**) using their existing authenticated session. The `/design` route is protected by the same router guard as products and orders.
 
+In **Layout**, drag a section's dotted handle to change its position. Mouse/touch dragging is available on the web; the native app uses a touch gesture and pauses page scrolling while dragging. The drop target is highlighted and the preview updates after dropping. Arrow buttons remain available, and the web handles also support ↑/↓ and Escape to cancel. Hidden sections retain their position. Reordering uses the existing draft/publish flow and requires no additional database migration.
+
 ## Capabilities
 
 - Studio, Editorial and Electric starting styles.
